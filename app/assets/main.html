@@ -1,0 +1,29 @@
+<html>
+
+<head>
+
+</head>
+
+<body>
+    Connecting to server...
+    <script>
+        $(function () {
+            var myVar = setInterval(function () { pingServer(); }, 1000),
+                urlOnServer = "http://devxop.ddns.net:3000",
+                urlOfHomePage = "http://devxop.ddns.net:3000/display";
+
+            function pingServer() {
+                $.ajax({
+                    url: urlOnServer,
+                    data: null,
+                    dataType: 'json',
+                    success: function (result) {
+                        window.location = urlOfHomePage;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
