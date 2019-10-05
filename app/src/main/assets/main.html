@@ -166,7 +166,7 @@
     </div>
     <script language="javascript" type="text/javascript">
 
-        var wsUri = "ws://localhost:3000/websocket";
+        var wsUri = "ws://devxop.ddns.net:3000/websocket";
         var output;
 
         function init() {
@@ -190,7 +190,7 @@
             writeToScreen("CONNECTED");
             document.getElementById("status").innerText = "Connected to devxop.com!";
             setTimeout(function(){
-                window.location.href = "https://devxop.com/display";
+                window.location.href = "http://devxop.ddns.net:3000/display";
             }, 2000);
             doSend("WebSocket rocks");
         }
