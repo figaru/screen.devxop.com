@@ -11,7 +11,7 @@
             position: absolute;
             top: calc(50% + 100px);
             text-align: center;
-            font-size: 2.5rem;
+            font-size: 1.5rem;
             font-family: calibri;
             color: #fff;
         }
@@ -172,9 +172,10 @@
         function init() {
             document.getElementById("status").innerText = "Connecting to server...";
             output = document.getElementById("output");
-            setTimeout(function () {
-                testWebSocket();
-            }, 2000)
+            //setTimeout(function () {
+             //   testWebSocket();
+            //}, 2000)
+            testWebSocket();
 
         }
 
@@ -189,9 +190,11 @@
         function onOpen(evt) {
             writeToScreen("CONNECTED");
             document.getElementById("status").innerText = "Connected to devxop.com!";
-            setTimeout(function(){
-                window.location.href = "http://devxop.ddns.net:3000/display";
-            }, 2000);
+            //setTimeout(function(){
+              //  window.location.href = "http://devxop.ddns.net:3000/display";
+            //}, 2000);
+
+            window.location.href = "http://devxop.ddns.net:3000/display";
             doSend("WebSocket rocks");
         }
 
