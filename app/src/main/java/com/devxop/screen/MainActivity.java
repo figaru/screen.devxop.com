@@ -1,10 +1,16 @@
 package com.devxop.screen;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.Uri;
 import android.net.http.SslError;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -12,44 +18,52 @@ import android.view.Window;
 import android.webkit.CookieManager;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
+import android.widget.VideoView;
 
 public class MainActivity extends Activity {
-    private WebView mWebView;
+    private Handler uiHandler;
+    private WebView myWebView;
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().requestFeature(Window.FEATURE_NO_TITLE);
-        mWebView = new WebView(this);
-        mWebView.setWebViewClient(new myWebClient());
-        mWebView.setWebChromeClient(new WebChromeClient());
-        //mWebView.loadUrl("http://devxop.ddns.net:3000/display");
+
+        setContentView(R.layout.activity_main);
+        //getWindow().requestFeature(Window.FEATURE_NO_TITLE);
+
+        uiHandler = new Handler();
+        myWebView = findViewById(R.id.webview);
 
 
+        //setContentView(myWebView);
 
-        mWebView.setInitialScale(1);
-        mWebView.getSettings().setJavaScriptEnabled(true);
-        mWebView.getSettings().setMediaPlaybackRequiresUserGesture(false);
-        mWebView.getSettings().setDomStorageEnabled(true);
-
-        mWebView.getSettings().setLoadWithOverviewMode(true);
-        mWebView.getSettings().setUseWideViewPort(true);
-        mWebView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
-
-        if (android.os.Build.VERSION.SDK_INT >= 21) {
-            CookieManager.getInstance().setAcceptThirdPartyCookies(mWebView, true);
-        } else {
-            CookieManager.getInstance().setAcceptCookie(true);
-        }
+        simulate();
 
 
-        this.setContentView(mWebView);
-
-        mWebView.loadUrl("file:///android_asset/main.html");
+        //myWebView.loadUrl("http://devxop.ddns.net:3000/display");
     }
 
+    // This method is to be executed on the new thread.
+    public void simulate() {
+        uiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                myWebView.setWebViewClient(new myWebClient());
+                myWebView.setWebChromeClient(new WebChromeClient());
+                myWebView.getSettings().setJavaScriptEnabled(true);
+                myWebView.getSettings().setDomStorageEnabled(true);
+
+                myWebView.getSettings().setMediaPlaybackRequiresUserGesture(false);
+
+                // This is run on the UI thread.
+                myWebView.loadUrl("http://devxop.ddns.net:3000/display");
+            }
+        });
+    }
 
     public class myWebClient extends WebViewClient
     {

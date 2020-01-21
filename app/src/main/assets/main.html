@@ -3,7 +3,7 @@
 <head>
     <style>
         body {
-            background: rgba(0, 106, 165, 0.975);
+            background: #393836;
         }
 
         .status {
@@ -166,7 +166,7 @@
     </div>
     <script language="javascript" type="text/javascript">
 
-        var wsUri = "ws://devxop.ddns.net:3000/websocket";
+        var wsUri = "ws://devxop.com/websocket";
         var output;
 
         function init() {
@@ -191,10 +191,10 @@
             writeToScreen("CONNECTED");
             document.getElementById("status").innerText = "Connected to devxop.com!";
             //setTimeout(function(){
-              //  window.location.href = "http://devxop.ddns.net:3000/display";
+              //  window.location.href = "https://devxop.com/display";
             //}, 2000);
 
-            window.location.href = "http://devxop.ddns.net:3000/display";
+            window.location.href = "https://devxop.com/display";
             doSend("WebSocket rocks");
         }
 
