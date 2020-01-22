@@ -6,16 +6,26 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <!-- This FrameLayout insets its children based on system windows using
+         android:fitsSystemWindows. -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fitsSystemWindows="true">
 
         <WebView
+            android:id="@+id/webviewVideo"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            />
+
+        <WebView
             android:id="@+id/webview"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             />
+
+
 
     </FrameLayout>
 </RelativeLayout>
