@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -34,6 +35,7 @@ import android.widget.VideoView;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
@@ -120,7 +122,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
                 public void run() {
                     myWebView.setVisibility(View.VISIBLE);
                     myWebView.reload();
-                    myWebView.loadUrl("http://192.168.8.108:3000/display");
+                    myWebView.loadUrl("http://devxop.com:3000/display");
                 }
             });
 
@@ -135,7 +137,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
                     Environment.getExternalStorageDirectory().getAbsolutePath() +
                     "/video.mp4";
 
-            String html = "<html> <header></header> <body> <video style='width: 100%; height: 100%; image-rendering: optimizeQuality; background-repeat: no-repeat; background-position: center; background-clip: content-box; background-size: cover; display: block; position: fixed; top: 0; bottom: 0; position: fixed; right: 0; bottom: 0; height: 100%; width: 100%; top: 0; left: 0; object-fit: fill;' autoplay muted loop src='" + videoUrl + "'> </video> </body> </html>";
+            String html = "<html style='background-color: #222;'> <header></header> <body> <video style='width: 100%; height: 100%; image-rendering: optimizeQuality; background-repeat: no-repeat; background-position: center; background-clip: content-box; background-size: cover; display: block; position: fixed; top: 0; bottom: 0; position: fixed; right: 0; bottom: 0; height: 100%; width: 100%; top: 0; left: 0; object-fit: fill;' autoplay muted loop src='" + videoUrl + "' poster='file:///android_asset/dev_banner.jpg'> </video> </body> </html>";
 
             //myWebViewVideo.loadUrl(videoUrl);
             myWebViewVideo.setVisibility(View.VISIBLE);
@@ -377,7 +379,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
                     @Override
                     public void run() {
                         myWebView.setVisibility(View.VISIBLE);
-                        myWebView.loadUrl("http://192.168.8.108:3000/display");
+                        myWebView.loadUrl("http://devxop.com:3000/display");
                     }
                 });
 
