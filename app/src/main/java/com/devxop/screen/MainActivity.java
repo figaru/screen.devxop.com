@@ -217,7 +217,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
                 //videoView.start();
 
 
-                String html = "<html> <header></header> <body> <video style='width: 100%; height: 100%; image-rendering: optimizeQuality; background-repeat: no-repeat; background-position: center; background-clip: content-box; background-size: cover; display: block; position: fixed; top: 0; bottom: 0;' autoplay loop muted src='" + videoUrl + "'> </video> </body> </html>";
+                String html = "<html style='padding: 0; margin: 0;'> <header></header> <body style='padding: 0; margin: 0;'> <video style='width: 100%; height: 100%; image-rendering: optimizeQuality; background-repeat: no-repeat; background-position: center; background-clip: content-box; background-size: cover; display: block; position: fixed; top: 0; bottom: 0;' autoplay loop muted src='" + videoUrl + "'> </video> </body> </html>";
 
                 myWebView.loadUrl(videoUrl);
                 //myWebViewVideo.loadUrl(videoUrl);
