@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
+import android.media.MediaPlayer;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -21,6 +22,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
@@ -32,6 +34,17 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.VideoView;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.devxop.screen.App.AppConfig;
+
+import org.json.JSONObject;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -40,13 +53,19 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends Activity implements NetworkChangeReceiver.ConnectionChangeCallback {
 
     private Handler uiHandler;
     private WebView myWebView;
+    private String device_id;
 
     private WebView myWebViewVideo;
+    private VideoView videoView;
+
+    private String url = "";
 
     // Progress Dialog
     private ProgressDialog pDialog;
@@ -59,24 +78,18 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
         setContentView(R.layout.activity_main);
         //getWindow().requestFeature(Window.FEATURE_NO_TITLE);
 
+        //videoView = (VideoView)findViewById(R.id.VideoView);
+        //MediaController mediaController = new MediaController(this);
+        // mediaController.setAnchorView(videoView);
+        //videoView.setMediaController(mediaController);
+
+        device_id = StorageManager.Get(getApplicationContext(), "device_id");
+
+        url = "http://10.0.2.2:3000/api/display?device_id=" + device_id;
+
         uiHandler = new Handler();
         myWebView = findViewById(R.id.webview);
-        myWebViewVideo = findViewById(R.id.webviewVideo);
 
-
-        //SET WEBVIEW FOR VIDEO
-        myWebViewVideo.setWebViewClient(new myWebClientVideo());
-        myWebViewVideo.setWebChromeClient(new WebChromeClient());
-        myWebViewVideo.getSettings().setJavaScriptEnabled(true);
-        myWebViewVideo.getSettings().setDomStorageEnabled(true);
-
-        //myWebView.getSettings().setAllowFileAccess(true);
-        myWebViewVideo.getSettings().getAllowFileAccess();
-        myWebViewVideo.getSettings().getAllowFileAccessFromFileURLs();
-        myWebViewVideo.getSettings().getAllowUniversalAccessFromFileURLs();
-        myWebViewVideo.getSettings().getAllowContentAccess();
-
-        myWebViewVideo.getSettings().setMediaPlaybackRequiresUserGesture(false);
 
         //SET MAIN WEBVIEW
         myWebView.addJavascriptInterface(new WebAppInterface(this), "Android");
@@ -85,7 +98,6 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
         myWebView.getSettings().setJavaScriptEnabled(true);
         myWebView.getSettings().setDomStorageEnabled(true);
 
-        //myWebView.getSettings().setAllowFileAccess(true);
         myWebView.getSettings().getAllowFileAccess();
         myWebView.getSettings().getAllowFileAccessFromFileURLs();
         myWebView.getSettings().getAllowUniversalAccessFromFileURLs();
@@ -102,46 +114,143 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
 
         networkChangeReceiver.setConnectionChangeCallback(this);
 
+        String videoUrl = Environment.getExternalStorageDirectory().getAbsolutePath() +
+                "/video.mp4";
+
+        myWebView.loadUrl(url);
+
+        /*myWebView.post(new Runnable() {
+            @Override
+            public void run() {
+
+                //myWebView.reload();
+                myWebView.loadUrl(url);
+            }
+        });*/
+
+
+        doPing();
     }
+
+    private void doPing() {
+
+        //Log.d("PINGIN", "DOING PING");
+
+        RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+
+        StringRequest syncRequest = new StringRequest(Request.Method.GET, AppConfig.URL_UPDATE + "?device_id=" + device_id,
+                new Response.Listener<String>()
+                {
+                    @Override
+                    public void onResponse(String response) {
+                        try{
+                            JSONObject jObj = new JSONObject(response);
+                            int code = jObj.getInt("code");
+                            boolean update = jObj.getBoolean("data");
+
+                            //Log.d("Response", response);
+
+                            // Check for error node in json
+                            if (code == 200) {
+                                // response
+
+                                if(update == true){
+
+                                    Log.d("FORCE UPDATE", "FORCING UPDATE");
+                                    myWebView.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            myWebView.setVisibility(View.VISIBLE);
+                                            myWebView.reload();
+                                            myWebView.loadUrl(url);
+                                        }
+                                    });
+                                }
+
+
+                            }else{
+
+                            }
+                        }catch (Exception ex){
+                            Log.d("EXCPETION PING", ex.toString());
+                        }
+
+
+                    }
+                },
+                new Response.ErrorListener()
+                {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // TODO Auto-generated method stub
+
+                    }
+                }
+        );
+
+        // Adding request to request queue
+        queue.add(syncRequest);
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                doPing();
+            }
+        }, 15*1000);
+    }
+
+    public void playVideo(){
+        myWebView.post(new Runnable() {
+            @Override
+            public void run() {
+
+                //myWebView.setVisibility();
+
+
+                //myWebView.reload();
+                String videoUrl = "file:///" +
+                        Environment.getExternalStorageDirectory().getAbsolutePath() +
+                        "/video.mp4";
+
+                //videoView.setVideoPath(videoUrl);
+
+                //videoView.start();
+
+
+                String html = "<html> <header></header> <body> <video style='width: 100%; height: 100%; image-rendering: optimizeQuality; background-repeat: no-repeat; background-position: center; background-clip: content-box; background-size: cover; display: block; position: fixed; top: 0; bottom: 0;' autoplay loop muted src='" + videoUrl + "'> </video> </body> </html>";
+
+                myWebView.loadUrl(videoUrl);
+                //myWebViewVideo.loadUrl(videoUrl);
+                //myWebView.setVisibility(View.VISIBLE);
+                myWebView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
+
+                //myWebView.setVisibility(View.VISIBLE);
+                //myWebView.setLayout(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+                //myWebView.reload();*/
+            }
+        });
+    }
+
+
 
     @Override
     public void onConnectionChange(boolean isConnected) {
 
         if(isConnected){
 
-            myWebViewVideo.post(new Runnable() {
-                @Override
-                public void run() {
-                    myWebViewVideo.loadUrl("");
-                    myWebViewVideo.setVisibility(View.GONE);
-                }
-            });
-
             myWebView.post(new Runnable() {
                 @Override
                 public void run() {
                     myWebView.setVisibility(View.VISIBLE);
                     myWebView.reload();
-                    myWebView.loadUrl("http://devxop.com:3000/display");
+                    myWebView.loadUrl(url);
                 }
             });
 
         }
         else{
-            // will be called when internet is gone.
-
-            //myWebView.setVisibility();
-            myWebView.setVisibility(View.GONE);
-
-            String videoUrl = "file:///" +
-                    Environment.getExternalStorageDirectory().getAbsolutePath() +
-                    "/video.mp4";
-
-            String html = "<html style='background-color: #222;'> <header></header> <body> <video style='width: 100%; height: 100%; image-rendering: optimizeQuality; background-repeat: no-repeat; background-position: center; background-clip: content-box; background-size: cover; display: block; position: fixed; top: 0; bottom: 0; position: fixed; right: 0; bottom: 0; height: 100%; width: 100%; top: 0; left: 0; object-fit: fill;' autoplay muted loop src='" + videoUrl + "' poster='file:///android_asset/dev_banner.jpg'> </video> </body> </html>";
-
-            //myWebViewVideo.loadUrl(videoUrl);
-            myWebViewVideo.setVisibility(View.VISIBLE);
-            myWebViewVideo.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
+            playVideo();
         }
     }
 
@@ -165,13 +274,6 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
             // Ignore SSL certificate errors
         }
 
-        @Override
-        public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-            super.onReceivedError(view, errorCode, description, failingUrl);
-
-            view.loadUrl("about:blank");
-
-        }
 
 
     }
@@ -245,14 +347,6 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
                     myWebView.setVisibility(View.VISIBLE);
                 }
             });
-
-            myWebViewVideo.post(new Runnable() {
-                @Override
-                public void run() {
-                    myWebViewVideo.loadUrl("");
-                    myWebViewVideo.setVisibility(View.GONE);
-                }
-            });
         }
 
         @JavascriptInterface
@@ -261,18 +355,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
                 @Override
                 public void run() {
 
-                    //myWebView.setVisibility();
-                    myWebView.setVisibility(View.GONE);
-
-                    String videoUrl = "file:///" +
-                            Environment.getExternalStorageDirectory().getAbsolutePath() +
-                            "/video.mp4";
-
-                    String html = "<html> <header></header> <body> <video style='width: 100%; height: 100%; image-rendering: optimizeQuality; background-repeat: no-repeat; background-position: center; background-clip: content-box; background-size: cover; display: block; position: fixed; top: 0; bottom: 0; position: fixed; right: 0; bottom: 0; height: 100%; width: 100%; top: 0; left: 0; object-fit: fill;' autoplay muted loop src='" + videoUrl + "'> </video> </body> </html>";
-
-                    //myWebViewVideo.loadUrl(videoUrl);
-                    myWebViewVideo.setVisibility(View.VISIBLE);
-                    myWebViewVideo.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
+                    playVideo();
                 }
             });
 
@@ -360,26 +443,16 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
                 output.close();
                 input.close();
 
-                myWebView.post(new Runnable() {
-                    @Override
-                    public void run() {
-
-                        String videoUrl = "file:///" +
-                                Environment.getExternalStorageDirectory().getAbsolutePath() +
-                                "/video.mp4";
-
-                        MainActivity.this.myWebView.evaluateJavascript("videoComplete('" + videoUrl + "');", null);
-                    }
-                });
+                playVideo();
 
             } catch (Exception e) {
                 Log.e("Error: ", e.getMessage());
 
-                myWebView.post(new Runnable() {
+                /*myWebView.post(new Runnable() {
                     @Override
                     public void run() {
                         myWebView.setVisibility(View.VISIBLE);
-                        myWebView.loadUrl("http://devxop.com:3000/display");
+                        myWebView.loadUrl(url);
                     }
                 });
 
@@ -389,7 +462,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
                         myWebViewVideo.loadUrl("");
                         myWebViewVideo.setVisibility(View.GONE);
                     }
-                });
+                });*/
             }
 
             return null;

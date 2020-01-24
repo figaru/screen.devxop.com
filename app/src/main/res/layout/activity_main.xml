@@ -15,15 +15,16 @@
         android:fitsSystemWindows="true">
 
         <WebView
-            android:id="@+id/webviewVideo"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-        <WebView
             android:id="@+id/webview"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:background="@mipmap/ic_launcher_foreground"/>
 
+
+        <!--<VideoView
+            android:layout_height="match_parent"
+            android:layout_width="match_parent"
+            android:id="@+id/VideoView" />-->
 
     </FrameLayout>
 </RelativeLayout>
