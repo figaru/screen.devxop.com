@@ -67,6 +67,7 @@ public class SyncActivity extends Activity {
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         // TODO Auto-generated method stub
+                        AppConfig.requires_restart = true;
                         //no internet connection to server
                         Toast.makeText(getApplicationContext(),"No connection to server. Playing backup video.",Toast.LENGTH_LONG).show();
                         Intent intent = new Intent(SyncActivity.this,

@@ -28,6 +28,8 @@ import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -107,10 +109,22 @@ public class MainActivity extends Activity {
         myWebView.getSettings().getAllowFileAccessFromFileURLs();
         myWebView.getSettings().getAllowUniversalAccessFromFileURLs();
         myWebView.getSettings().getAllowContentAccess();
+        myWebView.getSettings().setGeolocationEnabled(true);
+
 
         myWebView.getSettings().setMediaPlaybackRequiresUserGesture(false);
 
+
+        /*if(AppConfig.requires_restart){
+            //requires restart at this stage means that app did not connect to server
+            playVideo();
+        }else{
+            //if connected force webveiw download webpage
+            forceUpdate();
+        }*/
+
         forceUpdate();
+
         doPing();
     }
 
@@ -190,7 +204,7 @@ public class MainActivity extends Activity {
                         Environment.getExternalStorageDirectory().getAbsolutePath() +
                         "/video.mp4";
 
-                String html = "<html style='padding: 0; margin: 0;'> <header></header> <body style='padding: 0; margin: 0;'> <video style='width: 100%; height: 100%; image-rendering: optimizeQuality; background-repeat: no-repeat; background-position: center; background-clip: content-box; background-size: cover; display: block; position: fixed; top: 0; bottom: 0;' autoplay loop muted src='" + videoUrl + "'> </video> </body> </html>";
+                String html = "<html style='padding: 0; margin: 0;     background-color: rgb(34, 34, 34);'> <header></header> <body style='padding: 0; margin: 0;'> <video style='width: 100%; height: 100%; image-rendering: optimizeQuality; background-repeat: no-repeat; background-position: center; background-clip: content-box; background-size: cover; display: block; position: fixed; top: 0; bottom: 0;' autoplay loop muted src='" + videoUrl + "'> </video> </body> </html>";
 
 
                 myWebView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
@@ -219,29 +233,16 @@ public class MainActivity extends Activity {
             // Ignore SSL certificate errors
         }
 
-
-    }
-
-    /**
-     * Showing Dialog
-     */
-
-    @Override
-    protected Dialog onCreateDialog(int id) {
-        switch (id) {
-            case progress_bar_type: // we set this to 0
-                pDialog = new ProgressDialog(this);
-                pDialog.setMessage("Downloading file. Please wait...");
-                pDialog.setIndeterminate(false);
-                pDialog.setMax(100);
-                pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-                pDialog.setCancelable(true);
-                pDialog.show();
-                return pDialog;
-            default:
-                return null;
+        @Override
+        public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+            super.onReceivedError(view, request, error);
+            // Do somethinng
+            AppConfig.requires_restart = true;
+            playVideo();
         }
+
     }
+
 
 
     public class WebAppInterface {
@@ -367,12 +368,21 @@ public class MainActivity extends Activity {
                         // After this onProgressUpdate will be called
                         publishProgress("" + (int) ((total * 100) / lenghtOfFile));
 
-                        int progress = (int) ((total * 100) / lenghtOfFile);
+                        final int progress = (int) ((total * 100) / lenghtOfFile);
 
                         if((progress / increment) > 1){
                             increment += 10;
                             Log.d("DOWNLOAD FILE", "" + progress);
                         }
+
+                        myWebView.post(new Runnable() {
+                            @Override
+                            public void run() {
+
+
+                                MainActivity.this.myWebView.evaluateJavascript("updateProgress('" + progress + "')", null);
+                            }
+                        });
 
 
 
