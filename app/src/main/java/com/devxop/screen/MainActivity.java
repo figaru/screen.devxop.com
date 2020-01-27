@@ -32,6 +32,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 import android.widget.VideoView;
 
 import com.android.volley.AuthFailureError;
@@ -42,6 +43,7 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.devxop.screen.App.AppConfig;
+import com.devxop.screen.App.ValidateServer;
 
 import org.json.JSONObject;
 
@@ -55,6 +57,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 public class MainActivity extends Activity implements NetworkChangeReceiver.ConnectionChangeCallback {
 
@@ -85,7 +88,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
 
         device_id = StorageManager.Get(getApplicationContext(), "device_id");
 
-        url = "http://10.0.2.2:3000/api/display?device_id=" + device_id;
+        url = "http://devxop.ddns.net:3000/api/display?device_id=" + device_id;
 
         uiHandler = new Handler();
         myWebView = findViewById(R.id.webview);
@@ -117,7 +120,10 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
         String videoUrl = Environment.getExternalStorageDirectory().getAbsolutePath() +
                 "/video.mp4";
 
-        myWebView.loadUrl(url);
+        //myWebView.loadUrl(url);
+
+        //force connection to server
+        onConnectionChange(true);
 
         /*myWebView.post(new Runnable() {
             @Override
@@ -154,17 +160,9 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
                             if (code == 200) {
                                 // response
 
-                                if(update == true){
-
-                                    Log.d("FORCE UPDATE", "FORCING UPDATE");
-                                    myWebView.post(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            myWebView.setVisibility(View.VISIBLE);
-                                            myWebView.reload();
-                                            myWebView.loadUrl(url);
-                                        }
-                                    });
+                                if(update == true || AppConfig.requires_restart){
+                                    Log.d("FORCE UPDATE", "FORCING UPDATE -> Connection");
+                                    onConnectionChange(true);
                                 }
 
 
@@ -237,8 +235,10 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
     @Override
     public void onConnectionChange(boolean isConnected) {
 
-        if(isConnected){
+        isConnected = true;
 
+        if(isConnected){
+            Toast.makeText(getApplicationContext(),"Connection Established -> forcing restart",Toast.LENGTH_SHORT).show();
             myWebView.post(new Runnable() {
                 @Override
                 public void run() {
@@ -250,6 +250,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
 
         }
         else{
+
             playVideo();
         }
     }
@@ -383,6 +384,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
          */
         @Override
         protected String doInBackground(String... f_url) {
+            Toast.makeText(getApplicationContext(),"Download video...",Toast.LENGTH_LONG).show();
             int count;
             try {
                 URL url = new URL(f_url[0]);

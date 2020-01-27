@@ -9,6 +9,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
@@ -19,12 +20,14 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.devxop.screen.App.AppConfig;
 import com.devxop.screen.App.AppController;
+import com.devxop.screen.App.ValidateServer;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 
 public class SyncActivity extends Activity {
@@ -38,32 +41,48 @@ public class SyncActivity extends Activity {
 
         //Remove notification bar
         this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
-
         setContentView(R.layout.activity_sync);
 
-        if(!isNetworkConnected()){
-            Intent intent = new Intent(SyncActivity.this,
-                    MainActivity.class);
-            startActivity(intent);
-            finish();
-        }
+        RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+        StringRequest syncRequest = new StringRequest(Request.Method.GET, AppConfig.URL_UPDATE,
+                new Response.Listener<String>()
+                {
+                    @Override
+                    public void onResponse(String response) {
+                        Log.d("SyncActivity", "IS CONNECTED");
+                        Toast.makeText(getApplicationContext(), "Server reached!", Toast.LENGTH_LONG).show();
+                        try{
+                            Sync();
+                        }catch (Exception ex){
+                            Intent intent = new Intent(SyncActivity.this,
+                                    LoginActivity.class);
+                            startActivity(intent);
+                            finish();
+                        }
+                    }
+                },
+                new Response.ErrorListener()
+                {
 
-        try{
-            Sync();
-        }catch (Exception ex){
-            Intent intent = new Intent(SyncActivity.this,
-                    LoginActivity.class);
-            startActivity(intent);
-            finish();
-        }
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // TODO Auto-generated method stub
+                        //no internet connection to server
+                        Toast.makeText(getApplicationContext(),"No connection to server. Playing backup video.",Toast.LENGTH_LONG).show();
+                        Intent intent = new Intent(SyncActivity.this,
+                                MainActivity.class);
+                        startActivity(intent);
+                        finish();
+                    }
+                }
+        );
 
-    }
+        // Adding request to request queue
+        queue.add(syncRequest);
 
-    private boolean isNetworkConnected() {
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 
-        return cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnected();
+
+
     }
 
 

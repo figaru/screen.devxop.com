@@ -35,6 +35,8 @@ public class StartupActivity extends Activity {
         String device_id = StorageManager.Get(getApplicationContext(), "device_id");
 
 
+
+
         //device_id = "";
         //StorageManager.Set(getApplicationContext(),"device_id", "");
 
@@ -50,6 +52,7 @@ public class StartupActivity extends Activity {
             finish();
         }else{
             Log.d("Device_id", device_id);
+
 
                 // Launching the Sync Activity
             Intent intent = new Intent(StartupActivity.this,
