@@ -90,7 +90,7 @@ public class MainActivity extends Activity {
 
         device_id = StorageManager.Get(getApplicationContext(), "device_id");
 
-        url = "http://devxop.ddns.net:3000/api/display?device_id=" + device_id;
+        url = AppConfig.URL_DISPLAY + "?device_id=" + device_id;
 
         uiHandler = new Handler();
         myWebView = findViewById(R.id.webview);
@@ -173,6 +173,7 @@ public class MainActivity extends Activity {
     }
 
     public void forceUpdate(){
+        AppConfig.requires_restart = false;
         myWebView.post(new Runnable() {
             @Override
             public void run() {
@@ -310,7 +311,9 @@ public class MainActivity extends Activity {
             String checkUrl = f_url[0].toString();
             String storedVideo = StorageManager.Get(getApplicationContext(), "stored_video");
 
-            if(storedVideo == checkUrl){
+            Log.d("STORED VIDEO LINK", storedVideo);
+            Log.d("NEW VIDEO LINK", checkUrl);
+            if(storedVideo.equals(checkUrl)){
                 Log.d("Download Video", "Video already locally stored");
                 playVideo();
             }else{

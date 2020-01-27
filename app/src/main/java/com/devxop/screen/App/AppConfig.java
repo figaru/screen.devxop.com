@@ -28,13 +28,16 @@ import java.net.URL;
 public class AppConfig {
 
     // Server generic api url
-    public static String URL_API = "http://devxop.ddns.net:3000";
+    public static String URL_API = "http://10.0.2.2:3000";
     // Server app authenticate url
     public static String URL_REGISTER = URL_API + "/api/device/register";
     // Server app authenticate url
     public static String URL_LOGIN = URL_API + "/api/device/register";
     // Server user get details
     public static String URL_SYNC = URL_API + "/api/device/sync";
+
+    public static String URL_DISPLAY = URL_API + "/api/display";
+
     public static String URL_UPDATE = URL_API + "/api/device/update";
 
     public static Boolean requires_restart = false;
