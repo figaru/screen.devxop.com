@@ -48,8 +48,10 @@ import com.devxop.screen.App.ValidateServer;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -59,7 +61,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-public class MainActivity extends Activity implements NetworkChangeReceiver.ConnectionChangeCallback {
+public class MainActivity extends Activity {
 
     private Handler uiHandler;
     private WebView myWebView;
@@ -108,33 +110,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
 
         myWebView.getSettings().setMediaPlaybackRequiresUserGesture(false);
 
-        IntentFilter intentFilter = new
-                IntentFilter("android.net.conn.CONNECTIVITY_CHANGE");
-
-        NetworkChangeReceiver networkChangeReceiver = new NetworkChangeReceiver();
-
-        registerReceiver(networkChangeReceiver, intentFilter);
-
-        networkChangeReceiver.setConnectionChangeCallback(this);
-
-        String videoUrl = Environment.getExternalStorageDirectory().getAbsolutePath() +
-                "/video.mp4";
-
-        //myWebView.loadUrl(url);
-
-        //force connection to server
-        onConnectionChange(true);
-
-        /*myWebView.post(new Runnable() {
-            @Override
-            public void run() {
-
-                //myWebView.reload();
-                myWebView.loadUrl(url);
-            }
-        });*/
-
-
+        forceUpdate();
         doPing();
     }
 
@@ -153,16 +129,14 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
                             JSONObject jObj = new JSONObject(response);
                             int code = jObj.getInt("code");
                             boolean update = jObj.getBoolean("data");
-
-                            //Log.d("Response", response);
-
                             // Check for error node in json
                             if (code == 200) {
                                 // response
 
                                 if(update == true || AppConfig.requires_restart){
                                     Log.d("FORCE UPDATE", "FORCING UPDATE -> Connection");
-                                    onConnectionChange(true);
+                                    //onConnectionChange(true);
+                                    forceUpdate();
                                 }
 
 
@@ -171,6 +145,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
                             }
                         }catch (Exception ex){
                             Log.d("EXCPETION PING", ex.toString());
+                            AppConfig.requires_restart = true;
                         }
 
 
@@ -181,7 +156,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         // TODO Auto-generated method stub
-
+                        AppConfig.requires_restart = true;
                     }
                 }
         );
@@ -197,87 +172,32 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
         }, 15*1000);
     }
 
-    public void playVideo(){
+    public void forceUpdate(){
         myWebView.post(new Runnable() {
             @Override
             public void run() {
-
-                //myWebView.setVisibility();
-
-
-                //myWebView.reload();
-                String videoUrl = "file:///" +
-                        Environment.getExternalStorageDirectory().getAbsolutePath() +
-                        "/video.mp4";
-
-                //videoView.setVideoPath(videoUrl);
-
-                //videoView.start();
-
-
-                String html = "<html style='padding: 0; margin: 0;'> <header></header> <body style='padding: 0; margin: 0;'> <video style='width: 100%; height: 100%; image-rendering: optimizeQuality; background-repeat: no-repeat; background-position: center; background-clip: content-box; background-size: cover; display: block; position: fixed; top: 0; bottom: 0;' autoplay loop muted src='" + videoUrl + "'> </video> </body> </html>";
-
-                myWebView.loadUrl(videoUrl);
-                //myWebViewVideo.loadUrl(videoUrl);
-                //myWebView.setVisibility(View.VISIBLE);
-                myWebView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
-
-                //myWebView.setVisibility(View.VISIBLE);
-                //myWebView.setLayout(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-
-                //myWebView.reload();*/
+                myWebView.loadUrl(url);
             }
         });
     }
 
+    public void playVideo(){
+        myWebView.post(new Runnable() {
+            @Override
+            public void run() {
+                String videoUrl = "file:///" +
+                        Environment.getExternalStorageDirectory().getAbsolutePath() +
+                        "/video.mp4";
+
+                String html = "<html style='padding: 0; margin: 0;'> <header></header> <body style='padding: 0; margin: 0;'> <video style='width: 100%; height: 100%; image-rendering: optimizeQuality; background-repeat: no-repeat; background-position: center; background-clip: content-box; background-size: cover; display: block; position: fixed; top: 0; bottom: 0;' autoplay loop muted src='" + videoUrl + "'> </video> </body> </html>";
 
 
-    @Override
-    public void onConnectionChange(boolean isConnected) {
+                myWebView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
 
-        isConnected = true;
-
-        if(isConnected){
-            Toast.makeText(getApplicationContext(),"Connection Established -> forcing restart",Toast.LENGTH_SHORT).show();
-            myWebView.post(new Runnable() {
-                @Override
-                public void run() {
-                    myWebView.setVisibility(View.VISIBLE);
-                    myWebView.reload();
-                    myWebView.loadUrl(url);
-                }
-            });
-
-        }
-        else{
-
-            playVideo();
-        }
+            }
+        });
     }
 
-
-    public class myWebClientVideo extends WebViewClient {
-
-        @Override
-        public void onPageStarted(WebView view, String url, Bitmap favicon) {
-            // TODO Auto-generated method stub
-            super.onPageStarted(view, url, favicon);
-        }
-
-        @Override
-        public boolean shouldOverrideUrlLoading(WebView view, String url) {
-            return super.shouldOverrideUrlLoading(view, url);
-        }
-
-        @Override
-        public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError er) {
-            handler.proceed();
-            // Ignore SSL certificate errors
-        }
-
-
-
-    }
 
     public class myWebClient extends WebViewClient {
 
@@ -376,7 +296,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            showDialog(progress_bar_type);
+            //showDialog(progress_bar_type);
         }
 
         /**
@@ -384,88 +304,97 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
          */
         @Override
         protected String doInBackground(String... f_url) {
-            Toast.makeText(getApplicationContext(),"Download video...",Toast.LENGTH_LONG).show();
+            //Toast.makeText(getApplicationContext(),"Download video...",Toast.LENGTH_LONG).show();
             int count;
-            try {
-                URL url = new URL(f_url[0]);
-                URLConnection conection = url.openConnection();
-                conection.connect();
 
-                // this will be useful so that you can show a tipical 0-100%
-                // progress bar
-                int lenghtOfFile = conection.getContentLength();
+            String checkUrl = f_url[0].toString();
+            String storedVideo = StorageManager.Get(getApplicationContext(), "stored_video");
 
-                if(lenghtOfFile < 1000){
-                    return "";
-                }
-
-                // download the file
-                InputStream input = new BufferedInputStream(url.openStream(),
-                        8192);
-
-                File dir = Environment.getExternalStorageDirectory();
-                String path = dir.getAbsolutePath();
-
-                Log.d("PATH FILE: ", path);
-
-                if(dir.exists()){
-                    File from = new File(dir,"video.mp4");
-                    Log.d("FILE CHECK", from.getAbsolutePath());
-                    if(from.exists()){
-                        from.delete();
-                    }
-
-                }
-
-                // Output stream
-                OutputStream output = new FileOutputStream(path.toString()
-                        + "/video.mp4");
-
-                Log.d("DOWNLOAD FILE", "LOC: " + path.toString()
-                        + "/video.mp4");
-
-                byte data[] = new byte[1024];
-
-                long total = 0;
-
-                while ((count = input.read(data)) != -1) {
-                    total += count;
-                    // publishing the progress....
-                    // After this onProgressUpdate will be called
-                    publishProgress("" + (int) ((total * 100) / lenghtOfFile));
-
-                    // writing data to file
-                    output.write(data, 0, count);
-                }
-
-                // flushing output
-                output.flush();
-
-                // closing streams
-                output.close();
-                input.close();
-
+            if(storedVideo == checkUrl){
+                Log.d("Download Video", "Video already locally stored");
                 playVideo();
+            }else{
+                Log.d("Download Video", "Video download required...");
 
-            } catch (Exception e) {
-                Log.e("Error: ", e.getMessage());
+                try {
+                    URL url = new URL(f_url[0]);
+                    URLConnection conection = url.openConnection();
+                    conection.connect();
 
-                /*myWebView.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        myWebView.setVisibility(View.VISIBLE);
-                        myWebView.loadUrl(url);
+                    // this will be useful so that you can show a tipical 0-100%
+                    // progress bar
+                    int lenghtOfFile = conection.getContentLength();
+
+                    if(lenghtOfFile < 1000){
+                        return "";
                     }
-                });
 
-                myWebViewVideo.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        myWebViewVideo.loadUrl("");
-                        myWebViewVideo.setVisibility(View.GONE);
+                    // download the file
+                    InputStream input = new BufferedInputStream(url.openStream(),
+                            8192);
+
+                    File dir = Environment.getExternalStorageDirectory();
+                    String path = dir.getAbsolutePath();
+
+                    Log.d("PATH FILE: ", path);
+
+                    if(dir.exists()){
+                        File from = new File(dir,"video.mp4");
+                        Log.d("FILE CHECK", from.getAbsolutePath());
+                        if(from.exists()){
+                            from.delete();
+                        }
+
                     }
-                });*/
+
+                    // Output stream
+                    OutputStream output = new FileOutputStream(path.toString()
+                            + "/video.mp4");
+
+                    Log.d("DOWNLOAD FILE", "LOC: " + path.toString()
+                            + "/video.mp4");
+
+                    byte data[] = new byte[1024];
+
+                    long total = 0;
+                    int increment = 10;
+                    while ((count = input.read(data)) != -1) {
+                        total += count;
+                        // publishing the progress....
+                        // After this onProgressUpdate will be called
+                        publishProgress("" + (int) ((total * 100) / lenghtOfFile));
+
+                        int progress = (int) ((total * 100) / lenghtOfFile);
+
+                        if((progress / increment) > 1){
+                            increment += 10;
+                            Log.d("DOWNLOAD FILE", "" + progress);
+                        }
+
+
+
+                        // writing data to file
+                        output.write(data, 0, count);
+                    }
+
+                    // flushing output
+                    output.flush();
+
+                    // closing streams
+                    output.close();
+                    input.close();
+
+                    StorageManager.Set(getApplicationContext(), "stored_video", checkUrl);
+
+                    playVideo();
+
+                } catch (Exception e) {
+                    Log.e("Error: ", e.getMessage());
+                    forceUpdate();
+                }
             }
+
+
 
             return null;
         }
@@ -475,7 +404,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
          */
         protected void onProgressUpdate(String... progress) {
             // setting progress percentage
-            pDialog.setProgress(Integer.parseInt(progress[0]));
+            //pDialog.setProgress(Integer.parseInt(progress[0]));
         }
 
         /**
@@ -484,7 +413,7 @@ public class MainActivity extends Activity implements NetworkChangeReceiver.Conn
         @Override
         protected void onPostExecute(String file_url) {
             // dismiss the dialog after the file was downloaded
-            dismissDialog(progress_bar_type);
+            //dismissDialog(progress_bar_type);
 
         }
 
