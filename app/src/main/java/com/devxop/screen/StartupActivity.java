@@ -9,6 +9,8 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.devxop.screen.Helper.StorageManager;
+
 
 public class StartupActivity extends Activity {
     boolean mServiceBound = false;

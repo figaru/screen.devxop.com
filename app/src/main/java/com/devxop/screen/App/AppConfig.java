@@ -28,7 +28,7 @@ import java.net.URL;
 public class AppConfig {
 
     // Server generic api url
-    public static String URL_API = "http://10.0.2.2:3000";
+    public static String URL_API = "http://devxop.ddns.net:3000";
     // Server app authenticate url
     public static String URL_REGISTER = URL_API + "/api/device/register";
     // Server app authenticate url
@@ -41,6 +41,8 @@ public class AppConfig {
     public static String URL_UPDATE = URL_API + "/api/device/update";
 
     public static Boolean requires_restart = false;
+
+    public static Boolean video_open = false;
 
     private boolean connected;
 

@@ -3,9 +3,11 @@ package com.devxop.screen;
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
@@ -16,6 +18,7 @@ import android.net.http.SslError;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
@@ -24,6 +27,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
@@ -46,6 +50,7 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.devxop.screen.App.AppConfig;
 import com.devxop.screen.App.ValidateServer;
+import com.devxop.screen.Helper.StorageManager;
 
 import org.json.JSONObject;
 
@@ -78,11 +83,34 @@ public class MainActivity extends Activity {
     private ProgressDialog pDialog;
     public static final int progress_bar_type = 0;
 
+    AppService mAppService;
+    boolean mServiceBound = false;
+
+    //private VideoView videoView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+
+        String videoUrl = "file:///" +
+                Environment.getExternalStorageDirectory().getAbsolutePath() +
+                "/video.mp4";
+
+        videoView = (VideoView)findViewById(R.id.myvideoview);
+        //mVV.setOnCompletionListener(this);
+
+        videoView.setOnPreparedListener( new MediaPlayer.OnPreparedListener() {
+            @Override
+            public void onPrepared(MediaPlayer mp) {
+                mp.setLooping(true);
+            }
+        });
+
+        videoView.setVideoURI( Uri.parse(videoUrl) );
         //getWindow().requestFeature(Window.FEATURE_NO_TITLE);
 
         //videoView = (VideoView)findViewById(R.id.VideoView);
@@ -126,7 +154,12 @@ public class MainActivity extends Activity {
         forceUpdate();
 
         doPing();
+
+        Intent intent = new Intent(this, AppService.class);
+        startService(intent);
+        bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
     }
+
 
     private void doPing() {
 
@@ -187,17 +220,57 @@ public class MainActivity extends Activity {
     }
 
     public void forceUpdate(){
+        //finish();
+
+        //VideoPlayerActivity.this.finish();
+
+        /*if(AppConfig.video_open){
+
+            finish();
+            AppConfig.video_open = false;
+        }*/
+
+        //finish();
+
         AppConfig.requires_restart = false;
         myWebView.post(new Runnable() {
             @Override
             public void run() {
+                myWebView.setVisibility(View.VISIBLE);
                 myWebView.loadUrl(url);
             }
         });
+
+
+        videoView.post(new Runnable() {
+            @Override
+            public void run() {
+                videoView.setVisibility(View.INVISIBLE);
+                videoView.stopPlayback();
+            }
+        });
+
+        //Intent videoPlaybackActivity = new Intent(this, VideoPlayerActivity.class);
+
     }
 
     public void playVideo(){
+
         myWebView.post(new Runnable() {
+            @Override
+            public void run() {
+                myWebView.setVisibility(View.INVISIBLE);
+            }
+        });
+
+        videoView.post(new Runnable() {
+            @Override
+            public void run() {
+                videoView.setVisibility(View.VISIBLE);
+                videoView.start();
+            }
+        });
+        /*myWebView.post(new Runnable() {
             @Override
             public void run() {
                 String videoUrl = "file:///" +
@@ -210,7 +283,28 @@ public class MainActivity extends Activity {
                 myWebView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
 
             }
-        });
+        });*/
+
+        /*String videoUrl = "file:///" +
+                Environment.getExternalStorageDirectory().getAbsolutePath() +
+                "/video.mp4";
+
+        Intent videoPlaybackActivity = new Intent(getApplicationContext(), VideoPlayerActivity.class);
+        videoPlaybackActivity.putExtra("videoPath", videoUrl);
+        this.startActivity(videoPlaybackActivity);*/
+
+        //ideoPlayerActivity..finish();
+
+
+
+
+        AppConfig.video_open = true;
+
+        //finish();
+
+
+
+
     }
 
 
@@ -431,4 +525,19 @@ public class MainActivity extends Activity {
         }
 
     }
+
+    private ServiceConnection mServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mServiceBound = false;
+        }
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            AppService.MyBinder myBinder = (AppService.MyBinder) service;
+            mAppService = myBinder.getService();
+            mServiceBound = true;
+        }
+    };
 }
