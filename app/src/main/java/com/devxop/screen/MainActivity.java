@@ -89,6 +89,7 @@ public class MainActivity extends Activity {
 
     private static final String ACTION_STRING_SERVICE = "ToService";
     private static final String ACTION_STRING_ACTIVITY = "ToActivity";
+    private static final String ACTION_STRING_UPDATE = "forceUpdate";
 
     //STEP1: Create a broadcast receiver
     private BroadcastReceiver activityReceiver = new BroadcastReceiver() {
@@ -96,6 +97,8 @@ public class MainActivity extends Activity {
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction().toString();
+
+            //Toast.makeText(getApplicationContext(), action, Toast.LENGTH_SHORT).show();
 
             if(action.equals("forceUpdate")){
                 forceUpdate();
@@ -165,8 +168,10 @@ public class MainActivity extends Activity {
         if (activityReceiver != null) {
 //Create an intent filter to listen to the broadcast sent with the action "ACTION_STRING_ACTIVITY"
             IntentFilter intentFilter = new IntentFilter(ACTION_STRING_ACTIVITY);
+            IntentFilter intentFilter2 = new IntentFilter(ACTION_STRING_UPDATE);
 //Map the intent filter to the receiver
             registerReceiver(activityReceiver, intentFilter);
+            registerReceiver(activityReceiver, intentFilter2);
         }
 
         Intent intent = new Intent(this, AppService.class);

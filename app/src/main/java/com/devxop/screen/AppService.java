@@ -1,11 +1,13 @@
 package com.devxop.screen;
 
+import android.app.ActivityManager;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.util.Log;
@@ -23,6 +25,8 @@ import com.devxop.screen.Helper.StorageManager;
 
 import org.json.JSONObject;
 
+import java.util.List;
+
 public class AppService extends Service {
     private static String LOG_TAG = "BoundService";
     private IBinder mBinder = new AppService.MyBinder();
@@ -31,6 +35,8 @@ public class AppService extends Service {
     private static final String ACTION_STRING_SERVICE = "ToService";
     private static final String ACTION_STRING_ACTIVITY = "ToActivity";
     private static final String ACTION_STRING_UPDATE = "forceUpdate";
+
+    private ActivityManager activityManager;
 
     //STEP1: Create a broadcast receiver
     private BroadcastReceiver serviceReceiver = new BroadcastReceiver() {
@@ -47,8 +53,8 @@ public class AppService extends Service {
         @Override
         public void run() {
             while(true){
-                Log.d("SERVICE", "###############################################################################");
-                Log.d("SERVICE", "SERVICE RUNNING");
+                /*Log.d("SERVICE", "###############################################################################");
+                Log.d("SERVICE", "SERVICE RUNNING");*/
 
                 RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
 
@@ -110,6 +116,26 @@ public class AppService extends Service {
             }
         }
     };
+
+    public static String getCurProcessName(Context context) {
+
+        int pid = android.os.Process.myPid();
+
+        ActivityManager activityManager = (ActivityManager) context
+                .getSystemService(Context.ACTIVITY_SERVICE);
+
+        List<ActivityManager.RunningAppProcessInfo> tasks = activityManager.getRunningAppProcesses();
+        return tasks.get(0).processName;
+
+        /*for (ActivityManager.RunningAppProcessInfo appProcess : activityManager
+                .getRunningAppProcesses()) {
+
+            if (appProcess.pid == pid) {
+                return appProcess.processName;
+            }
+        }
+        return null;*/
+    }
 
     @Override
     public void onCreate() {

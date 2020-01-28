@@ -77,8 +77,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/app/src/main/java/com/devxop/screen/MainActivity.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="310">
-              <caret line="100" column="30" selection-start-line="100" selection-start-column="30" selection-end-line="100" selection-end-column="30" />
+            <state relative-caret-position="156">
+              <caret line="100" column="14" selection-start-line="100" selection-start-column="14" selection-end-line="100" selection-end-column="14" />
               <folding>
                 <element signature="imports" expanded="true" />
                 <element signature="e#2896#3317#0" expanded="true" />
@@ -111,8 +111,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app/src/main/java/com/devxop/screen/AppService.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2440">
-              <caret line="174" column="49" selection-start-line="174" selection-start-column="49" selection-end-line="174" selection-end-column="49" />
+            <state relative-caret-position="2398">
+              <caret line="198" column="26" selection-start-line="198" selection-start-column="26" selection-end-line="198" selection-end-column="26" />
               <folding>
                 <element signature="imports" expanded="true" />
                 <element signature="e#1103#1433#0" expanded="true" />
@@ -129,8 +129,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app/src/main/AndroidManifest.xml">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="118">
-              <caret line="29" column="28" selection-start-line="29" selection-start-column="28" selection-end-line="29" selection-end-column="28" />
+            <state relative-caret-position="669">
+              <caret line="49" column="34" selection-start-line="49" selection-start-column="34" selection-end-line="49" selection-end-column="34" />
               <folding>
                 <element signature="e#879#897#0" expanded="true" />
                 <element signature="e#1606#1624#0" expanded="true" />
@@ -162,6 +162,7 @@
       <find>Download URL</find>
       <find>conn</find>
       <find>equal</find>
+      <find>ACTION_STRING_ACTIVITY</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -209,7 +210,33 @@
     <panes>
       <pane id="PackagesPane" />
       <pane id="ProjectPane" />
-      <pane id="AndroidView" />
+      <pane id="AndroidView">
+        <subPane>
+          <expand>
+            <path>
+              <item name="screen.devxop.com" type="1abcf292:AndroidViewProjectNode" />
+              <item name="app" type="feadf853:AndroidModuleNode" />
+            </path>
+            <path>
+              <item name="screen.devxop.com" type="1abcf292:AndroidViewProjectNode" />
+              <item name="app" type="feadf853:AndroidModuleNode" />
+              <item name="manifests" type="f94875db:AndroidManifestsGroupNode" />
+            </path>
+            <path>
+              <item name="screen.devxop.com" type="1abcf292:AndroidViewProjectNode" />
+              <item name="app" type="feadf853:AndroidModuleNode" />
+              <item name="java" type="edd41e36:AndroidSourceTypeNode" />
+            </path>
+            <path>
+              <item name="screen.devxop.com" type="1abcf292:AndroidViewProjectNode" />
+              <item name="app" type="feadf853:AndroidModuleNode" />
+              <item name="java" type="edd41e36:AndroidSourceTypeNode" />
+              <item name="screen" type="cbb59c9e:AndroidPsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
       <pane id="Scope" />
     </panes>
   </component>
@@ -595,19 +622,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/AndroidManifest.xml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="118">
-          <caret line="29" column="28" selection-start-line="29" selection-start-column="28" selection-end-line="29" selection-end-column="28" />
-          <folding>
-            <element signature="e#879#897#0" expanded="true" />
-            <element signature="e#1606#1624#0" expanded="true" />
-            <element signature="e#1936#1966#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-      <provider editor-type-id="android-manifest" />
-    </entry>
     <entry file="file://$PROJECT_DIR$/app/src/main/java/com/devxop/screen/StartupActivity.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="189">
@@ -638,10 +652,23 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/AndroidManifest.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="669">
+          <caret line="49" column="34" selection-start-line="49" selection-start-column="34" selection-end-line="49" selection-end-column="34" />
+          <folding>
+            <element signature="e#879#897#0" expanded="true" />
+            <element signature="e#1606#1624#0" expanded="true" />
+            <element signature="e#1936#1966#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+      <provider editor-type-id="android-manifest" />
+    </entry>
     <entry file="file://$PROJECT_DIR$/app/src/main/java/com/devxop/screen/AppService.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2440">
-          <caret line="174" column="49" selection-start-line="174" selection-start-column="49" selection-end-line="174" selection-end-column="49" />
+        <state relative-caret-position="2398">
+          <caret line="198" column="26" selection-start-line="198" selection-start-column="26" selection-end-line="198" selection-end-column="26" />
           <folding>
             <element signature="imports" expanded="true" />
             <element signature="e#1103#1433#0" expanded="true" />
@@ -656,8 +683,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/app/src/main/java/com/devxop/screen/MainActivity.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="310">
-          <caret line="100" column="30" selection-start-line="100" selection-start-column="30" selection-end-line="100" selection-end-column="30" />
+        <state relative-caret-position="156">
+          <caret line="100" column="14" selection-start-line="100" selection-start-column="14" selection-end-line="100" selection-end-column="14" />
           <folding>
             <element signature="imports" expanded="true" />
             <element signature="e#2896#3317#0" expanded="true" />
