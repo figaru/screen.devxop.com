@@ -3,6 +3,7 @@ package com.devxop.screen;
 import android.app.Activity;
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -86,6 +87,24 @@ public class MainActivity extends Activity {
     AppService mAppService;
     boolean mServiceBound = false;
 
+    private static final String ACTION_STRING_SERVICE = "ToService";
+    private static final String ACTION_STRING_ACTIVITY = "ToActivity";
+
+    //STEP1: Create a broadcast receiver
+    private BroadcastReceiver activityReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction().toString();
+
+            if(action.equals("forceUpdate")){
+                forceUpdate();
+                //Toast.makeText(getApplicationContext(), "Forcing update...!", Toast.LENGTH_SHORT).show();
+            }
+
+        }
+    };
+
     //private VideoView videoView;
 
     @Override
@@ -100,23 +119,18 @@ public class MainActivity extends Activity {
                 Environment.getExternalStorageDirectory().getAbsolutePath() +
                 "/video.mp4";
 
-        videoView = (VideoView)findViewById(R.id.myvideoview);
+        videoView = (VideoView) findViewById(R.id.myvideoview);
         //mVV.setOnCompletionListener(this);
 
-        videoView.setOnPreparedListener( new MediaPlayer.OnPreparedListener() {
+        videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mp) {
                 mp.setLooping(true);
             }
         });
 
-        videoView.setVideoURI( Uri.parse(videoUrl) );
-        //getWindow().requestFeature(Window.FEATURE_NO_TITLE);
+        videoView.setVideoURI(Uri.parse(videoUrl));
 
-        //videoView = (VideoView)findViewById(R.id.VideoView);
-        //MediaController mediaController = new MediaController(this);
-        // mediaController.setAnchorView(videoView);
-        //videoView.setMediaController(mediaController);
 
         device_id = StorageManager.Get(getApplicationContext(), "device_id");
 
@@ -143,17 +157,17 @@ public class MainActivity extends Activity {
         myWebView.getSettings().setMediaPlaybackRequiresUserGesture(false);
 
 
-        /*if(AppConfig.requires_restart){
-            //requires restart at this stage means that app did not connect to server
-            playVideo();
-        }else{
-            //if connected force webveiw download webpage
-            forceUpdate();
-        }*/
-
         forceUpdate();
 
-        doPing();
+        //doPing();
+
+        //STEP2: register the receiver
+        if (activityReceiver != null) {
+//Create an intent filter to listen to the broadcast sent with the action "ACTION_STRING_ACTIVITY"
+            IntentFilter intentFilter = new IntentFilter(ACTION_STRING_ACTIVITY);
+//Map the intent filter to the receiver
+            registerReceiver(activityReceiver, intentFilter);
+        }
 
         Intent intent = new Intent(this, AppService.class);
         startService(intent);
@@ -168,11 +182,10 @@ public class MainActivity extends Activity {
         RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
 
         StringRequest syncRequest = new StringRequest(Request.Method.GET, AppConfig.URL_UPDATE + "?device_id=" + device_id,
-                new Response.Listener<String>()
-                {
+                new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        try{
+                        try {
                             JSONObject jObj = new JSONObject(response);
                             int code = jObj.getInt("code");
                             boolean update = jObj.getBoolean("data");
@@ -180,17 +193,17 @@ public class MainActivity extends Activity {
                             if (code == 200) {
                                 // response
 
-                                if(update == true || AppConfig.requires_restart){
+                                if (update == true || AppConfig.requires_restart) {
                                     Log.d("FORCE UPDATE", "FORCING UPDATE -> Connection");
                                     //onConnectionChange(true);
                                     forceUpdate();
                                 }
 
 
-                            }else{
+                            } else {
 
                             }
-                        }catch (Exception ex){
+                        } catch (Exception ex) {
                             Log.d("EXCPETION PING", ex.toString());
                             AppConfig.requires_restart = true;
                         }
@@ -198,8 +211,7 @@ public class MainActivity extends Activity {
 
                     }
                 },
-                new Response.ErrorListener()
-                {
+                new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         // TODO Auto-generated method stub
@@ -216,10 +228,10 @@ public class MainActivity extends Activity {
             public void run() {
                 doPing();
             }
-        }, 15*1000);
+        }, 15 * 1000);
     }
 
-    public void forceUpdate(){
+    public void forceUpdate() {
         //finish();
 
         //VideoPlayerActivity.this.finish();
@@ -254,7 +266,7 @@ public class MainActivity extends Activity {
 
     }
 
-    public void playVideo(){
+    public void playVideo() {
 
         myWebView.post(new Runnable() {
             @Override
@@ -270,41 +282,8 @@ public class MainActivity extends Activity {
                 videoView.start();
             }
         });
-        /*myWebView.post(new Runnable() {
-            @Override
-            public void run() {
-                String videoUrl = "file:///" +
-                        Environment.getExternalStorageDirectory().getAbsolutePath() +
-                        "/video.mp4";
-
-                String html = "<html style='padding: 0; margin: 0;     background-color: rgb(34, 34, 34);'> <header></header> <body style='padding: 0; margin: 0;'> <video style='width: 100%; height: 100%; image-rendering: optimizeQuality; background-repeat: no-repeat; background-position: center; background-clip: content-box; background-size: cover; display: block; position: fixed; top: 0; bottom: 0;' autoplay loop muted src='" + videoUrl + "'> </video> </body> </html>";
-
-
-                myWebView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
-
-            }
-        });*/
-
-        /*String videoUrl = "file:///" +
-                Environment.getExternalStorageDirectory().getAbsolutePath() +
-                "/video.mp4";
-
-        Intent videoPlaybackActivity = new Intent(getApplicationContext(), VideoPlayerActivity.class);
-        videoPlaybackActivity.putExtra("videoPath", videoUrl);
-        this.startActivity(videoPlaybackActivity);*/
-
-        //ideoPlayerActivity..finish();
-
-
-
 
         AppConfig.video_open = true;
-
-        //finish();
-
-
-
-
     }
 
 
@@ -336,7 +315,6 @@ public class MainActivity extends Activity {
         }
 
     }
-
 
 
     public class WebAppInterface {
@@ -408,10 +386,10 @@ public class MainActivity extends Activity {
 
             Log.d("STORED VIDEO LINK", storedVideo);
             Log.d("NEW VIDEO LINK", checkUrl);
-            if(storedVideo.equals(checkUrl)){
+            if (storedVideo.equals(checkUrl)) {
                 Log.d("Download Video", "Video already locally stored");
                 playVideo();
-            }else{
+            } else {
                 Log.d("Download Video", "Video download required...");
 
                 try {
@@ -423,7 +401,7 @@ public class MainActivity extends Activity {
                     // progress bar
                     int lenghtOfFile = conection.getContentLength();
 
-                    if(lenghtOfFile < 1000){
+                    if (lenghtOfFile < 1000) {
                         return "";
                     }
 
@@ -436,10 +414,10 @@ public class MainActivity extends Activity {
 
                     Log.d("PATH FILE: ", path);
 
-                    if(dir.exists()){
-                        File from = new File(dir,"video.mp4");
+                    if (dir.exists()) {
+                        File from = new File(dir, "video.mp4");
                         Log.d("FILE CHECK", from.getAbsolutePath());
-                        if(from.exists()){
+                        if (from.exists()) {
                             from.delete();
                         }
 
@@ -464,7 +442,7 @@ public class MainActivity extends Activity {
 
                         final int progress = (int) ((total * 100) / lenghtOfFile);
 
-                        if((progress / increment) > 1){
+                        if ((progress / increment) > 1) {
                             increment += 10;
                             Log.d("DOWNLOAD FILE", "" + progress);
                         }
@@ -477,7 +455,6 @@ public class MainActivity extends Activity {
                                 MainActivity.this.myWebView.evaluateJavascript("updateProgress('" + progress + "')", null);
                             }
                         });
-
 
 
                         // writing data to file
@@ -500,7 +477,6 @@ public class MainActivity extends Activity {
                     forceUpdate();
                 }
             }
-
 
 
             return null;

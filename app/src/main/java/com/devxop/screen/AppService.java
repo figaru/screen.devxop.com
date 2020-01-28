@@ -1,17 +1,47 @@
 package com.devxop.screen;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Chronometer;
+import android.widget.Toast;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.devxop.screen.App.AppConfig;
+import com.devxop.screen.Helper.StorageManager;
+
+import org.json.JSONObject;
 
 public class AppService extends Service {
     private static String LOG_TAG = "BoundService";
     private IBinder mBinder = new AppService.MyBinder();
     private Chronometer mChronometer;
+
+    private static final String ACTION_STRING_SERVICE = "ToService";
+    private static final String ACTION_STRING_ACTIVITY = "ToActivity";
+    private static final String ACTION_STRING_UPDATE = "forceUpdate";
+
+    //STEP1: Create a broadcast receiver
+    private BroadcastReceiver serviceReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Toast.makeText(getApplicationContext(), "received message in service..!", Toast.LENGTH_SHORT).show();
+            Log.d("Service", "Sending broadcast to activity");
+            sendBroadcast();
+        }
+    };
 
     private Runnable runnable = new Runnable() {
         @Override
@@ -20,6 +50,56 @@ public class AppService extends Service {
                 Log.d("SERVICE", "###############################################################################");
                 Log.d("SERVICE", "SERVICE RUNNING");
 
+                RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+
+                StringRequest syncRequest = new StringRequest(Request.Method.GET, AppConfig.URL_UPDATE + "?device_id=" + StorageManager.Get(getApplicationContext(), "device_id"),
+                        new Response.Listener<String>()
+                        {
+                            @Override
+                            public void onResponse(String response) {
+                                try{
+                                    JSONObject jObj = new JSONObject(response);
+                                    int code = jObj.getInt("code");
+                                    boolean update = jObj.getBoolean("data");
+                                    // Check for error node in json
+                                    if (code == 200) {
+                                        // response
+
+                                        if(update == true || AppConfig.requires_restart){
+                                            Log.d("FORCE UPDATE", "FORCING UPDATE -> Connection");
+                                            //onConnectionChange(true);
+                                            //forceUpdate();
+
+                                            sendForceUpdate();
+                                        }
+
+
+                                    }else{
+
+                                    }
+                                }catch (Exception ex){
+                                    Log.d("EXCPETION PING", ex.toString());
+                                    AppConfig.requires_restart = true;
+                                }
+
+
+                            }
+                        },
+                        new Response.ErrorListener()
+                        {
+                            @Override
+                            public void onErrorResponse(VolleyError error) {
+                                // TODO Auto-generated method stub
+                                AppConfig.requires_restart = true;
+                            }
+                        }
+                );
+
+                // Adding request to request queue
+                queue.add(syncRequest);
+
+
+                sendBroadcast();
                 try{
                     Thread.sleep(15000);
                 }catch(Exception ex){
@@ -43,6 +123,14 @@ public class AppService extends Service {
 //        Notification notification = ...
 //        // this will ensure your service won't be killed by Android
 //        startForeground(R.id.notification, notification);
+
+        //STEP2: register the receiver
+        if (serviceReceiver != null) {
+//Create an intent filter to listen to the broadcast sent with the action "ACTION_STRING_SERVICE"
+            IntentFilter intentFilter = new IntentFilter(ACTION_STRING_SERVICE);
+//Map the intent filter to the receiver
+            registerReceiver(serviceReceiver, intentFilter);
+        }
 
         mChronometer = new Chronometer(this);
         mChronometer.setBase(SystemClock.elapsedRealtime());
@@ -71,17 +159,21 @@ public class AppService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.v(LOG_TAG, "in onDestroy");
+        //STEP3: Unregister the receiver
+        unregisterReceiver(serviceReceiver);
         mChronometer.stop();
     }
 
-    public String getTimestamp() {
-        long elapsedMillis = SystemClock.elapsedRealtime()
-                - mChronometer.getBase();
-        int hours = (int) (elapsedMillis / 3600000);
-        int minutes = (int) (elapsedMillis - hours * 3600000) / 60000;
-        int seconds = (int) (elapsedMillis - hours * 3600000 - minutes * 60000) / 1000;
-        int millis = (int) (elapsedMillis - hours * 3600000 - minutes * 60000 - seconds * 1000);
-        return hours + ":" + minutes + ":" + seconds + ":" + millis;
+    private void sendBroadcast() {
+        Intent new_intent = new Intent();
+        new_intent.setAction(ACTION_STRING_ACTIVITY);
+        sendBroadcast(new_intent);
+    }
+
+    private void sendForceUpdate() {
+        Intent new_intent = new Intent();
+        new_intent.setAction(ACTION_STRING_UPDATE);
+        sendBroadcast(new_intent);
     }
 
     public class MyBinder extends Binder {
