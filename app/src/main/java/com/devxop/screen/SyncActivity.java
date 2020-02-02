@@ -51,7 +51,7 @@ public class SyncActivity extends Activity {
                     @Override
                     public void onResponse(String response) {
                         Log.d("SyncActivity", "IS CONNECTED");
-                        Toast.makeText(getApplicationContext(), "Server reached!", Toast.LENGTH_LONG).show();
+                        //Toast.makeText(getApplicationContext(), "Server reached!", Toast.LENGTH_LONG).show();
                         try{
                             Sync();
                         }catch (Exception ex){
@@ -70,7 +70,7 @@ public class SyncActivity extends Activity {
                         // TODO Auto-generated method stub
                         AppConfig.requires_restart = true;
                         //no internet connection to server
-                        Toast.makeText(getApplicationContext(),"No connection to server. Playing backup video.",Toast.LENGTH_LONG).show();
+                        //Toast.makeText(getApplicationContext(),"No connection to server. Playing backup video.",Toast.LENGTH_LONG).show();
                         Intent intent = new Intent(SyncActivity.this,
                                 MainActivity.class);
                         startActivity(intent);

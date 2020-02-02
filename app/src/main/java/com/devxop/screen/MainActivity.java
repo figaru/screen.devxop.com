@@ -9,7 +9,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.net.ConnectivityManager;
@@ -17,6 +19,7 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.net.http.SslError;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
@@ -39,10 +42,12 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.Toast;
 import android.widget.VideoView;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -57,12 +62,14 @@ import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.HashMap;
@@ -77,6 +84,7 @@ public class MainActivity extends Activity {
 
     private WebView myWebViewVideo;
     private VideoView videoView;
+    private ImageView imageView;
 
     private String url = "";
 
@@ -100,7 +108,7 @@ public class MainActivity extends Activity {
 
             //Toast.makeText(getApplicationContext(), action, Toast.LENGTH_SHORT).show();
 
-            if(action.equals("forceUpdate")){
+            if (action.equals("forceUpdate")) {
                 forceUpdate();
                 //Toast.makeText(getApplicationContext(), "Forcing update...!", Toast.LENGTH_SHORT).show();
             }
@@ -109,6 +117,57 @@ public class MainActivity extends Activity {
     };
 
     //private VideoView videoView;
+
+    @Override
+    public void onResume(){
+        super.onResume();
+        // put your code here...
+        ///STEP2: register the receiver
+        /*if (activityReceiver != null) {
+//Create an intent filter to listen to the broadcast sent with the action "ACTION_STRING_ACTIVITY"
+            IntentFilter intentFilter = new IntentFilter(ACTION_STRING_ACTIVITY);
+            IntentFilter intentFilter2 = new IntentFilter(ACTION_STRING_UPDATE);
+//Map the intent filter to the receiver
+            registerReceiver(activityReceiver, intentFilter);
+            registerReceiver(activityReceiver, intentFilter2);
+        }*/
+
+        forceUpdate();
+
+    }
+
+    @Override
+    public void onPause(){
+        super.onPause();
+    //Log.d("ACTIVITY MAIN", "unregistering Receiver");
+        try {
+
+            //Register or UnRegister your broadcast receiver here
+            //unregisterReceiver(activityReceiver);
+        } catch(IllegalArgumentException e) {
+
+            e.printStackTrace();
+        }
+
+    }
+
+
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
+        //Log.d("ACTIVITY MAIN", "unregistering Receiver");
+        try {
+
+            //Register or UnRegister your broadcast receiver here
+            //unregisterReceiver(activityReceiver);
+        } catch(IllegalArgumentException e) {
+
+            e.printStackTrace();
+        }
+    }
+
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,49 +193,34 @@ public class MainActivity extends Activity {
 
         videoView.setVideoURI(Uri.parse(videoUrl));
 
+        imageView = findViewById(R.id.myimageview);
+
 
         device_id = StorageManager.Get(getApplicationContext(), "device_id");
 
         url = AppConfig.URL_DISPLAY + "?device_id=" + device_id;
 
         uiHandler = new Handler();
-        myWebView = findViewById(R.id.webview);
 
 
-        //SET MAIN WEBVIEW
-        myWebView.addJavascriptInterface(new WebAppInterface(this), "Android");
-        myWebView.setWebViewClient(new myWebClient());
-        myWebView.setWebChromeClient(new WebChromeClient());
-        myWebView.getSettings().setJavaScriptEnabled(true);
-        myWebView.getSettings().setDomStorageEnabled(true);
-
-        myWebView.getSettings().getAllowFileAccess();
-        myWebView.getSettings().getAllowFileAccessFromFileURLs();
-        myWebView.getSettings().getAllowUniversalAccessFromFileURLs();
-        myWebView.getSettings().getAllowContentAccess();
-        myWebView.getSettings().setGeolocationEnabled(true);
-
-
-        myWebView.getSettings().setMediaPlaybackRequiresUserGesture(false);
-
-
-        forceUpdate();
-
-        //doPing();
-
-        //STEP2: register the receiver
-        if (activityReceiver != null) {
-//Create an intent filter to listen to the broadcast sent with the action "ACTION_STRING_ACTIVITY"
-            IntentFilter intentFilter = new IntentFilter(ACTION_STRING_ACTIVITY);
-            IntentFilter intentFilter2 = new IntentFilter(ACTION_STRING_UPDATE);
-//Map the intent filter to the receiver
-            registerReceiver(activityReceiver, intentFilter);
-            registerReceiver(activityReceiver, intentFilter2);
+        if(AppConfig.requires_restart){
+            playVideo();
+        }else{
+            forceUpdate();
         }
 
-        Intent intent = new Intent(this, AppService.class);
-        startService(intent);
-        bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
+
+        doPing();
+
+
+
+        /*Intent intent = new Intent(this, AppService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent);
+        }else{
+            startService(intent);
+        }
+        bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);*/
     }
 
 
@@ -225,6 +269,10 @@ public class MainActivity extends Activity {
                 }
         );
 
+        syncRequest.setRetryPolicy(new DefaultRetryPolicy(
+                1000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         // Adding request to request queue
         queue.add(syncRequest);
 
@@ -237,6 +285,60 @@ public class MainActivity extends Activity {
     }
 
     public void forceUpdate() {
+
+        RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+
+        StringRequest syncRequest = new StringRequest(Request.Method.GET, AppConfig.URL_DISPLAY + "?device_id=" + device_id,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        try {
+                            JSONObject jObj = new JSONObject(response);
+                            int code = jObj.getInt("code");
+
+
+                            // Check for error node in json
+                            if (code == 200) {
+                                AppConfig.requires_restart = false;
+                                // response
+                                JSONObject data = new JSONObject(jObj.getString("data"));
+
+
+                                //final String orientation = data.getString("orientation");
+                                final String display = data.getString("display");
+                                final String url = data.getString("url");
+
+
+
+                                if (display.equals("image")) {
+                                    new DownloadImageFromUrl().execute(AppConfig.URL_API + url);
+                                } else if (display.equals("video")) {
+                                    new DownloadFileFromURL().execute(AppConfig.URL_API + url);
+                                }
+
+
+                            } else {
+
+                            }
+                        } catch (Exception ex) {
+                            Log.d("EXCPETION PING", ex.toString());
+                            AppConfig.requires_restart = true;
+                        }
+
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // TODO Auto-generated method stub
+                        AppConfig.requires_restart = true;
+                    }
+                }
+        );
+
+        // Adding request to request queue
+        queue.add(syncRequest);
         //finish();
 
         //VideoPlayerActivity.this.finish();
@@ -250,39 +352,65 @@ public class MainActivity extends Activity {
         //finish();
 
         AppConfig.requires_restart = false;
-        myWebView.post(new Runnable() {
+        /*myWebView.post(new Runnable() {
             @Override
             public void run() {
                 myWebView.setVisibility(View.VISIBLE);
                 myWebView.loadUrl(url);
             }
-        });
+        });*/
 
-
-        videoView.post(new Runnable() {
-            @Override
-            public void run() {
-                videoView.setVisibility(View.INVISIBLE);
-                videoView.stopPlayback();
-            }
-        });
 
         //Intent videoPlaybackActivity = new Intent(this, VideoPlayerActivity.class);
 
     }
 
-    public void playVideo() {
 
-        myWebView.post(new Runnable() {
+    public void playImage() {
+
+        imageView.post(new Runnable() {
             @Override
             public void run() {
-                myWebView.setVisibility(View.INVISIBLE);
+
+                String imgUrl = Environment.getExternalStorageDirectory().getAbsolutePath() +
+                        "/image.jpg";
+
+                imageView.setVisibility(View.VISIBLE);
+                imageView.setImageBitmap(BitmapFactory.decodeFile(imgUrl));
+
             }
         });
 
         videoView.post(new Runnable() {
             @Override
             public void run() {
+                videoView.stopPlayback();
+                videoView.setVisibility(View.INVISIBLE);
+
+            }
+        });
+
+
+        AppConfig.video_open = false;
+    }
+
+    public void playVideo() {
+
+        imageView.post(new Runnable() {
+            @Override
+            public void run() {
+                imageView.setVisibility(View.INVISIBLE);
+            }
+        });
+
+        videoView.post(new Runnable() {
+            @Override
+            public void run() {
+                String videoUrl = "file:///" +
+                        Environment.getExternalStorageDirectory().getAbsolutePath() +
+                        "/video.mp4";
+
+                videoView.setVideoPath(videoUrl);
                 videoView.setVisibility(View.VISIBLE);
                 videoView.start();
             }
@@ -367,6 +495,105 @@ public class MainActivity extends Activity {
     /**
      * Background Async Task to download file
      */
+    class DownloadImageFromUrl extends AsyncTask<String, String, String> {
+
+        /**
+         * Before starting background thread Show Progress Bar Dialog
+         */
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            //showDialog(progress_bar_type);
+        }
+
+        /**
+         * Downloading file in background thread
+         */
+        @Override
+        protected String doInBackground(String... f_url) {
+            //Toast.makeText(getApplicationContext(),"Download video...",Toast.LENGTH_LONG).show();
+            int count;
+
+            String checkUrl = f_url[0].toString();
+            String storedVideo = StorageManager.Get(getApplicationContext(), "stored_image");
+
+            Log.d("STORED VIDEO LINK", storedVideo);
+            Log.d("NEW VIDEO LINK", checkUrl);
+            if (storedVideo.equals(checkUrl)) {
+                Log.d("Download Image", "Image already locally stored");
+                playImage();
+            } else {
+                Log.d("Download Image", "Image download required...");
+
+                try {
+                    URL url = new URL(f_url[0]);
+                    /*URLConnection conection = url.openConnection();
+                    conection.connect();*/
+
+                    File dir = Environment.getExternalStorageDirectory();
+                    String path = dir.getAbsolutePath();
+
+                    Log.d("PATH FILE: ", path);
+
+                    if (dir.exists()) {
+                        File from = new File(dir, "image.jpg");
+                        Log.d("FILE CHECK", from.getAbsolutePath());
+                        if (from.exists()) {
+                            from.delete();
+                        }
+
+                    }
+
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setDoInput(true);
+                    connection.connect();
+                    InputStream input = connection.getInputStream();
+                    Bitmap myBitmap = BitmapFactory.decodeStream(input);
+
+                    FileOutputStream stream = new FileOutputStream(path.toString()
+                            + "/image.jpg");
+
+                    ByteArrayOutputStream outstream = new ByteArrayOutputStream();
+                    myBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outstream);
+                    byte[] byteArray = outstream.toByteArray();
+
+                    stream.write(byteArray);
+                    stream.close();
+
+                    StorageManager.Set(getApplicationContext(), "stored_image", checkUrl);
+
+                    playImage();
+
+                } catch (Exception e) {
+                    Log.e("Error: ", e.getMessage());
+                    forceUpdate();
+                }
+            }
+
+
+            return null;
+        }
+
+        /**
+         * Updating progress bar
+         */
+        protected void onProgressUpdate(String... progress) {
+            // setting progress percentage
+            //pDialog.setProgress(Integer.parseInt(progress[0]));
+        }
+
+        /**
+         * After completing background task Dismiss the progress dialog
+         **/
+        @Override
+        protected void onPostExecute(String file_url) {
+            // dismiss the dialog after the file was downloaded
+            //dismissDialog(progress_bar_type);
+
+        }
+
+    }
+
     class DownloadFileFromURL extends AsyncTask<String, String, String> {
 
         /**
@@ -452,14 +679,14 @@ public class MainActivity extends Activity {
                             Log.d("DOWNLOAD FILE", "" + progress);
                         }
 
-                        myWebView.post(new Runnable() {
+                        /*myWebView.post(new Runnable() {
                             @Override
                             public void run() {
 
 
                                 MainActivity.this.myWebView.evaluateJavascript("updateProgress('" + progress + "')", null);
                             }
-                        });
+                        });*/
 
 
                         // writing data to file
@@ -474,6 +701,9 @@ public class MainActivity extends Activity {
                     input.close();
 
                     StorageManager.Set(getApplicationContext(), "stored_video", checkUrl);
+
+
+                    //Thread.sleep(3000);
 
                     playVideo();
 
@@ -511,6 +741,14 @@ public class MainActivity extends Activity {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
+            try {
+
+                //Register or UnRegister your broadcast receiver here
+                unregisterReceiver(activityReceiver);
+            } catch(IllegalArgumentException e) {
+
+                e.printStackTrace();
+            }
             mServiceBound = false;
         }
 

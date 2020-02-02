@@ -54,7 +54,7 @@ public class LoginActivity extends Activity {
         inputEmail = (EditText) findViewById(R.id.email);
         inputPassword = (EditText) findViewById(R.id.password);
         btnLogin = (Button) findViewById(R.id.btnLogin);
-        btnLinkToRegister = (Button) findViewById(R.id.btnLinkToRegisterScreen);
+        //btnLinkToRegister = (Button) findViewById(R.id.btnLinkToRegisterScreen);
 
         // Progress dialog
         pDialog = new ProgressDialog(this);
@@ -86,7 +86,7 @@ public class LoginActivity extends Activity {
 
         });
 
-        // Link to Register Screen
+        /*// Link to Register Screen
         btnLinkToRegister.setOnClickListener(new OnClickListener() {
 
             public void onClick(View view) {
@@ -95,7 +95,7 @@ public class LoginActivity extends Activity {
                 startActivity(i);
                 finish();
             }
-        });
+        });*/
 
     }
 

@@ -9,22 +9,23 @@
 
     <!-- This FrameLayout insets its children based on system windows using
          android:fitsSystemWindows. -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@mipmap/ic_launcher_foreground"
-        android:fitsSystemWindows="true">
 
-        <WebView
+        <!--<WebView
             android:id="@+id/webview"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:background="@mipmap/ic_launcher_foreground"/>-->
+
+        <ImageView
+            android:id="@+id/myimageview"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@mipmap/ic_launcher_foreground"/>
+            android:layout_gravity="center"
+            android:layout_height="match_parent" />
 
         <VideoView
             android:id="@+id/myvideoview"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:layout_gravity="center"
             />
 
@@ -33,6 +34,4 @@
             android:layout_height="match_parent"
             android:layout_width="match_parent"
             android:id="@+id/VideoView" />-->
-
-    </FrameLayout>
 </RelativeLayout>
