@@ -12,6 +12,7 @@ import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -41,8 +42,8 @@ public class SyncActivity extends Activity {
         this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 
         //Remove notification bar
-        this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setContentView(R.layout.activity_sync);
+        /*this.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        setContentView(R.layout.activity_sync);*/
 
         RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
         StringRequest syncRequest = new StringRequest(Request.Method.GET, AppConfig.URL_UPDATE,
@@ -70,7 +71,7 @@ public class SyncActivity extends Activity {
                         // TODO Auto-generated method stub
                         AppConfig.requires_restart = true;
                         //no internet connection to server
-                        //Toast.makeText(getApplicationContext(),"No connection to server. Playing backup video.",Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(),"No connection to server. Playing backup video.",Toast.LENGTH_LONG).show();
                         Intent intent = new Intent(SyncActivity.this,
                                 MainActivity.class);
                         startActivity(intent);
@@ -78,6 +79,11 @@ public class SyncActivity extends Activity {
                     }
                 }
         );
+
+        syncRequest.setRetryPolicy(new DefaultRetryPolicy(
+                1000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
         // Adding request to request queue
         queue.add(syncRequest);

@@ -1,7 +1,9 @@
 package com.devxop.screen;
 
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.Dialog;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -76,15 +78,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
+
 public class MainActivity extends Activity {
 
     private Handler uiHandler;
-    private WebView myWebView;
     private String device_id;
 
-    private WebView myWebViewVideo;
     private VideoView videoView;
     private ImageView imageView;
+    private WebView webView;
 
     private String url = "";
 
@@ -181,36 +184,48 @@ public class MainActivity extends Activity {
                 Environment.getExternalStorageDirectory().getAbsolutePath() +
                 "/video.mp4";
 
-        videoView = (VideoView) findViewById(R.id.myvideoview);
+        /* SET INIT VIEWS */
+        videoView = findViewById(R.id.myvideoview);
+        imageView = findViewById(R.id.myimageview);
+        webView = findViewById(R.id.mywebview);
         //mVV.setOnCompletionListener(this);
 
+        /* SET VIDEO URL INIT */
         videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mp) {
                 mp.setLooping(true);
             }
         });
-
         videoView.setVideoURI(Uri.parse(videoUrl));
 
-        imageView = findViewById(R.id.myimageview);
+        /* SET WEBVIEW INIT */
+        //myWebView.addJavascriptInterface(new WebAppInterface(this), "Android");
+        webView.setWebViewClient(new myWebClient());
+        webView.setWebChromeClient(new WebChromeClient());
+        webView.getSettings().setJavaScriptEnabled(true);
+        webView.getSettings().setDomStorageEnabled(true);
+        webView.getSettings().getAllowFileAccess();
+        webView.getSettings().getAllowFileAccessFromFileURLs();
+        webView.getSettings().getAllowUniversalAccessFromFileURLs();
+        webView.getSettings().getAllowContentAccess();
+        webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
+
 
 
         device_id = StorageManager.Get(getApplicationContext(), "device_id");
 
         url = AppConfig.URL_DISPLAY + "?device_id=" + device_id;
 
-        uiHandler = new Handler();
+        //uiHandler = new Handler();
 
-
+        doPing();
         if(AppConfig.requires_restart){
             playVideo();
         }else{
             forceUpdate();
         }
 
-
-        doPing();
 
 
 
@@ -270,7 +285,7 @@ public class MainActivity extends Activity {
         );
 
         syncRequest.setRetryPolicy(new DefaultRetryPolicy(
-                1000,
+                5000,
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         // Adding request to request queue
@@ -294,7 +309,11 @@ public class MainActivity extends Activity {
                     public void onResponse(String response) {
                         try {
                             JSONObject jObj = new JSONObject(response);
+
+                            Log.d("JSON PARSE", jObj.toString());
+
                             int code = jObj.getInt("code");
+
 
 
                             // Check for error node in json
@@ -303,17 +322,41 @@ public class MainActivity extends Activity {
                                 // response
                                 JSONObject data = new JSONObject(jObj.getString("data"));
 
+                                Log.d("JSON PARSE", data.toString());
+
 
                                 //final String orientation = data.getString("orientation");
                                 final String display = data.getString("display");
                                 final String url = data.getString("url");
 
 
+                                if(display.equals("restart")){
+                                    Log.d("SYSTEM FORCE RESTART", "---------------------------------------------------------");
+                                    Intent mStartActivity = new Intent(getApplicationContext(), StartupActivity.class);
+                                    int mPendingIntentId = 123456;
+                                    PendingIntent mPendingIntent = PendingIntent.getActivity(getApplicationContext(), mPendingIntentId,    mStartActivity, PendingIntent.FLAG_CANCEL_CURRENT);
+                                    AlarmManager mgr = (AlarmManager)getApplicationContext().getSystemService(Context.ALARM_SERVICE);
+                                    mgr.set(AlarmManager.RTC, System.currentTimeMillis() + 100, mPendingIntent);
+                                    System.exit(0);
+                                }else if (display.equals("image")) {
+                                    if(!url.isEmpty()){
+                                        new DownloadImageFromUrl().execute(AppConfig.URL_API + url);
+                                    }
 
-                                if (display.equals("image")) {
-                                    new DownloadImageFromUrl().execute(AppConfig.URL_API + url);
-                                } else if (display.equals("video")) {
-                                    new DownloadFileFromURL().execute(AppConfig.URL_API + url);
+                                }else if (display.equals("video")) {
+                                    if(!url.isEmpty()){
+                                        new DownloadFileFromURL().execute(AppConfig.URL_API + url);
+                                    }
+
+                                }else if(display.equals("webview")){
+
+                                    if(url.isEmpty()){
+                                        final String dataInject = data.getString("code");
+                                        playWebview(dataInject, true);
+                                    }else{
+                                        playWebview(url, false);
+                                    }
+
                                 }
 
 
@@ -333,38 +376,58 @@ public class MainActivity extends Activity {
                     public void onErrorResponse(VolleyError error) {
                         // TODO Auto-generated method stub
                         AppConfig.requires_restart = true;
+                        Log.d("ERROR REUQEST", error.toString());
                     }
                 }
         );
 
+        syncRequest.setRetryPolicy(new DefaultRetryPolicy(
+                6000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         // Adding request to request queue
         queue.add(syncRequest);
-        //finish();
-
-        //VideoPlayerActivity.this.finish();
-
-        /*if(AppConfig.video_open){
-
-            finish();
-            AppConfig.video_open = false;
-        }*/
-
-        //finish();
 
         AppConfig.requires_restart = false;
-        /*myWebView.post(new Runnable() {
-            @Override
-            public void run() {
-                myWebView.setVisibility(View.VISIBLE);
-                myWebView.loadUrl(url);
-            }
-        });*/
 
 
-        //Intent videoPlaybackActivity = new Intent(this, VideoPlayerActivity.class);
 
     }
 
+    public void playWebview(final String inject, final boolean isData) {
+        Log.d("WEBVIEW", "PLAYING WEBVIEW");
+        imageView.post(new Runnable() {
+            @Override
+            public void run() {
+                imageView.setVisibility(View.INVISIBLE);
+            }
+        });
+
+        videoView.post(new Runnable() {
+            @Override
+            public void run() {
+                videoView.stopPlayback();
+                videoView.setVisibility(View.INVISIBLE);
+            }
+        });
+
+        webView.post(new Runnable() {
+            @Override
+            public void run() {
+                webView.setVisibility(View.VISIBLE);
+                if(isData){
+                    webView.loadDataWithBaseURL(null, inject, "text/html", "UTF-8", null);
+                }else{
+                    webView.loadUrl(inject);
+                }
+
+            }
+        });
+
+
+
+        AppConfig.video_open = false;
+    }
 
     public void playImage() {
 
@@ -387,6 +450,14 @@ public class MainActivity extends Activity {
                 videoView.stopPlayback();
                 videoView.setVisibility(View.INVISIBLE);
 
+            }
+        });
+
+        webView.post(new Runnable() {
+            @Override
+            public void run() {
+                webView.setVisibility(View.INVISIBLE);
+                webView.loadUrl("about:blank");
             }
         });
 
@@ -415,6 +486,15 @@ public class MainActivity extends Activity {
                 videoView.start();
             }
         });
+
+        webView.post(new Runnable() {
+            @Override
+            public void run() {
+                webView.setVisibility(View.INVISIBLE);
+                webView.loadUrl("about:blank");
+            }
+        });
+
 
         AppConfig.video_open = true;
     }
@@ -469,10 +549,10 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void resetWebview() {
-            myWebView.post(new Runnable() {
+            webView.post(new Runnable() {
                 @Override
                 public void run() {
-                    myWebView.setVisibility(View.VISIBLE);
+                    webView.setVisibility(View.VISIBLE);
                 }
             });
         }

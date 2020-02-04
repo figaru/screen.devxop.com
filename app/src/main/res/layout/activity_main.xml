@@ -16,6 +16,12 @@
             android:layout_height="fill_parent"
             android:background="@mipmap/ic_launcher_foreground"/>-->
 
+    <WebView
+        android:id="@+id/mywebview"
+        android:layout_width="match_parent"
+        android:layout_gravity="center"
+        android:layout_height="match_parent" />
+
         <ImageView
             android:id="@+id/myimageview"
             android:layout_width="match_parent"
