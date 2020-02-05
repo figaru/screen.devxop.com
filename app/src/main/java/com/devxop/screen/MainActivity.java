@@ -60,6 +60,7 @@ import com.devxop.screen.App.AppConfig;
 import com.devxop.screen.App.ValidateServer;
 import com.devxop.screen.Helper.StorageManager;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
@@ -74,6 +75,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -111,10 +113,12 @@ public class MainActivity extends Activity {
 
             //Toast.makeText(getApplicationContext(), action, Toast.LENGTH_SHORT).show();
 
-            if (action.equals("forceUpdate")) {
+            Log.d("FORCED UPDATE SCHEDULED", "forcing a scheduled update now...");
+
+           /* if (action.equals("forceUpdate")) {
                 forceUpdate();
                 //Toast.makeText(getApplicationContext(), "Forcing update...!", Toast.LENGTH_SHORT).show();
-            }
+            }*/
 
         }
     };
@@ -160,13 +164,36 @@ public class MainActivity extends Activity {
         super.onDestroy();
         //Log.d("ACTIVITY MAIN", "unregistering Receiver");
         try {
-
+            unregisterReceiver(activityReceiver);
             //Register or UnRegister your broadcast receiver here
             //unregisterReceiver(activityReceiver);
         } catch(IllegalArgumentException e) {
 
             e.printStackTrace();
         }
+    }
+
+
+    private void setSchedule(){
+        Intent intentToFire = new Intent(getApplicationContext(), AlarmReceiver.class);
+        intentToFire.setAction(AlarmReceiver.ACTION_ALARM);
+
+        // pass something
+        // Bundle bundle = new Bundle();
+        // bundle.putString("TAG", "FOO");
+        // intentToFire.putExtra("BUNDLE", bundle);
+
+        PendingIntent alarmIntent = PendingIntent.getBroadcast(getApplicationContext(),
+                0, intentToFire, 0);
+        AlarmManager alarmManager = (AlarmManager)getApplicationContext().
+                getSystemService(Context.ALARM_SERVICE);
+
+        Calendar c = Calendar.getInstance();
+        c.add(Calendar.SECOND, 20);
+        long afterTwoMinutes = c.getTimeInMillis();
+
+        alarmManager.set(AlarmManager.RTC, afterTwoMinutes, alarmIntent);
+
     }
 
 
@@ -179,6 +206,8 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+        setSchedule();
+        registerReceiver(activityReceiver, new IntentFilter("FORCE_UPDATE"));
 
         String videoUrl = "file:///" +
                 Environment.getExternalStorageDirectory().getAbsolutePath() +
@@ -357,6 +386,10 @@ public class MainActivity extends Activity {
                                         playWebview(url, false);
                                     }
 
+                                }else if(display.equals("scheduled")){
+                                    if(!url.isEmpty()){
+                                        new DownloadScheduledFromURL().execute(AppConfig.URL_API + url);
+                                    }
                                 }
 
 
@@ -643,6 +676,187 @@ public class MainActivity extends Activity {
                     StorageManager.Set(getApplicationContext(), "stored_image", checkUrl);
 
                     playImage();
+
+                } catch (Exception e) {
+                    Log.e("Error: ", e.getMessage());
+                    forceUpdate();
+                }
+            }
+
+
+            return null;
+        }
+
+        /**
+         * Updating progress bar
+         */
+        protected void onProgressUpdate(String... progress) {
+            // setting progress percentage
+            //pDialog.setProgress(Integer.parseInt(progress[0]));
+        }
+
+        /**
+         * After completing background task Dismiss the progress dialog
+         **/
+        @Override
+        protected void onPostExecute(String file_url) {
+            // dismiss the dialog after the file was downloaded
+            //dismissDialog(progress_bar_type);
+
+        }
+
+    }
+
+    class DownloadScheduledFromURL extends AsyncTask<String, String, String> {
+
+        /**
+         * Before starting background thread Show Progress Bar Dialog
+         */
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            //showDialog(progress_bar_type);
+        }
+
+        /**
+         * Downloading file in background thread
+         */
+        @Override
+        protected String doInBackground(String... f_url) {
+            //Toast.makeText(getApplicationContext(),"Download video...",Toast.LENGTH_LONG).show();
+            int count;
+
+            String checkUrl = f_url[0].toString();
+            String storedVideo = StorageManager.Get(getApplicationContext(), "scheduled_video");
+
+            Log.d("STORED SCHEDULED VIDEO", storedVideo);
+            Log.d("NEW SCHEDULED VIDEO", checkUrl);
+            if (storedVideo.equals(checkUrl)) {
+                Log.d("Download Video", "Video already locally stored");
+                playVideo();
+            } else {
+                Log.d("Download Video", "Video download required...");
+
+                try {
+                    URL url = new URL(f_url[0]);
+                    URLConnection conection = url.openConnection();
+                    conection.connect();
+
+                    // this will be useful so that you can show a tipical 0-100%
+                    // progress bar
+                    int lenghtOfFile = conection.getContentLength();
+
+                    if (lenghtOfFile < 1000) {
+                        return "";
+                    }
+
+                    // download the file
+                    InputStream input = new BufferedInputStream(url.openStream(),
+                            8192);
+
+                    File dir = Environment.getExternalStorageDirectory();
+                    String path = dir.getAbsolutePath();
+
+                    Log.d("PATH FILE: ", path);
+
+                    if (dir.exists()) {
+                        File from = new File(dir, "scheduled.mp4");
+                        Log.d("FILE CHECK", from.getAbsolutePath());
+                        if (from.exists()) {
+                            from.delete();
+                        }
+
+                    }
+
+                    // Output stream
+                    OutputStream output = new FileOutputStream(path.toString()
+                            + "/scheduled.mp4");
+
+                    Log.d("DOWNLOAD FILE", "LOC: " + path.toString()
+                            + "/scheduled.mp4");
+
+                    byte data[] = new byte[1024];
+
+                    long total = 0;
+                    int increment = 10;
+                    while ((count = input.read(data)) != -1) {
+                        total += count;
+                        // publishing the progress....
+                        // After this onProgressUpdate will be called
+                        publishProgress("" + (int) ((total * 100) / lenghtOfFile));
+
+                        final int progress = (int) ((total * 100) / lenghtOfFile);
+
+                        if ((progress / increment) > 1) {
+                            increment += 10;
+                            Log.d("DOWNLOAD FILE", "" + progress);
+                        }
+
+
+                        // writing data to file
+                        output.write(data, 0, count);
+                    }
+
+                    // flushing output
+                    output.flush();
+
+                    // closing streams
+                    output.close();
+                    input.close();
+
+                    StorageManager.Set(getApplicationContext(), "scheduled_video", checkUrl);
+
+                    RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+                    StringRequest syncRequest = new StringRequest(Request.Method.GET, AppConfig.URL_SCHEDULE + "?device_id=" + device_id,
+                            new Response.Listener<String>()
+                            {
+                                @Override
+                                public void onResponse(String response) {
+                                    JSONObject jObj = null;
+                                    try {
+                                        jObj = new JSONObject(response);
+
+                                        Log.d("JSON PARSE", jObj.toString());
+
+                                        int code = jObj.getInt("code");
+
+
+
+                                        // Check for error node in json
+                                        if (code == 200) {
+                                            // response
+                                            JSONObject data = new JSONObject(jObj.getString("data"));
+
+
+                                            //final String orientation = data.getString("orientation");
+                                            final int scheduleStamp = data.getInt("schedule_stamp");
+
+                                        }
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
+
+
+                                }
+                            },
+                            new Response.ErrorListener()
+                            {
+
+                                @Override
+                                public void onErrorResponse(VolleyError error) {
+                                    Log.d("SCHEDULE POST REQUEST", "could not update server on schedule confirmation");
+                                }
+                            }
+                    );
+
+                    syncRequest.setRetryPolicy(new DefaultRetryPolicy(
+                            1000,
+                            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+                    // Adding request to request queue
+                    queue.add(syncRequest);
+
 
                 } catch (Exception e) {
                     Log.e("Error: ", e.getMessage());

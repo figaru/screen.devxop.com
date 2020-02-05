@@ -40,6 +40,8 @@ public class AppConfig {
 
     public static String URL_UPDATE = URL_API + "/api/device/update";
 
+    public static String URL_SCHEDULE = URL_API + "/api/device/schedule";
+
     public static Boolean requires_restart = false;
 
     public static Boolean video_open = false;

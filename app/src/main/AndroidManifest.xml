@@ -53,11 +53,10 @@
             android:enabled="true"
             android:exported="true" />
 
-        <receiver
-            android:name=".SensorRestarterBroadcastReceiver"
-            android:enabled="true"
-            android:exported="true"
-            android:label="RestartServiceWhenStopped">
+        <receiver android:name=".AlarmReceiver">
+            <intent-filter>
+                <action android:name="me.proft.alarms.ACTION_ALARM" />
+            </intent-filter>
         </receiver>
     </application>
 
