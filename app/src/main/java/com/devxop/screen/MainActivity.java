@@ -58,6 +58,7 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.devxop.screen.App.AppConfig;
 import com.devxop.screen.App.ValidateServer;
+import com.devxop.screen.Helper.API;
 import com.devxop.screen.Helper.StorageManager;
 
 import org.json.JSONException;
@@ -114,6 +115,10 @@ public class MainActivity extends Activity {
             //Toast.makeText(getApplicationContext(), action, Toast.LENGTH_SHORT).show();
 
             Log.d("FORCED UPDATE SCHEDULED", "forcing a scheduled update now...");
+
+            playScheduled();
+
+            API.scheduleRequest(context, "status", "playing", "string");
 
            /* if (action.equals("forceUpdate")) {
                 forceUpdate();
@@ -174,7 +179,7 @@ public class MainActivity extends Activity {
     }
 
 
-    private void setSchedule(){
+    private void setSchedule(int hour, int minute){
         Intent intentToFire = new Intent(getApplicationContext(), AlarmReceiver.class);
         intentToFire.setAction(AlarmReceiver.ACTION_ALARM);
 
@@ -188,11 +193,30 @@ public class MainActivity extends Activity {
         AlarmManager alarmManager = (AlarmManager)getApplicationContext().
                 getSystemService(Context.ALARM_SERVICE);
 
-        Calendar c = Calendar.getInstance();
-        c.add(Calendar.SECOND, 20);
-        long afterTwoMinutes = c.getTimeInMillis();
+        Calendar startTime = Calendar.getInstance();
+        startTime.set(Calendar.HOUR_OF_DAY, hour);
+        startTime.set(Calendar.MINUTE, minute);
+        startTime.set(Calendar.SECOND, 0);
 
-        alarmManager.set(AlarmManager.RTC, afterTwoMinutes, alarmIntent);
+// get a Calendar at the current time
+        Calendar now = Calendar.getInstance();
+
+        long time = 0;
+        if (now.before(startTime)) {
+            // it's not 14:00 yet, start today
+            time = startTime.getTimeInMillis();
+        } else {
+            // start 14:00 tomorrow
+            startTime.add(Calendar.DATE, 1);
+            time = startTime.getTimeInMillis();
+        }
+
+// set the alarm
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+            alarmManager.set(AlarmManager.RTC, time, alarmIntent);
+        } else {
+            alarmManager.setExact(AlarmManager.RTC, time, alarmIntent);
+        }
 
     }
 
@@ -206,7 +230,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        setSchedule();
+        //setSchedule();
         registerReceiver(activityReceiver, new IntentFilter("FORCE_UPDATE"));
 
         String videoUrl = "file:///" +
@@ -223,7 +247,13 @@ public class MainActivity extends Activity {
         videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mp) {
-                mp.setLooping(true);
+                final String scheduleActive = StorageManager.Get(getApplicationContext(), "schedule_active");
+                if(scheduleActive.equals("true")){
+                    API.scheduleRequest(getApplicationContext(), "status", "finished", "string");
+                    playImage();
+                }else{
+                    mp.setLooping(true);
+                }
             }
         });
         videoView.setVideoURI(Uri.parse(videoUrl));
@@ -250,7 +280,13 @@ public class MainActivity extends Activity {
 
         doPing();
         if(AppConfig.requires_restart){
-            playVideo();
+            final String display = StorageManager.Get(getApplicationContext(), "display");
+
+            if(display.equals("video")){
+                playVideo();
+            }else if(display.equals("image")){
+                playVideo();
+            }
         }else{
             forceUpdate();
         }
@@ -386,9 +422,25 @@ public class MainActivity extends Activity {
                                         playWebview(url, false);
                                     }
 
-                                }else if(display.equals("scheduled")){
-                                    if(!url.isEmpty()){
-                                        new DownloadScheduledFromURL().execute(AppConfig.URL_API + url);
+                                }else if(display.equals("schedule")){
+                                    Log.d("SCHEDULED ACTION PING", "Server responded with schedule update");
+                                    final String action = data.getString("action");
+
+                                    if(action.contains("download")){
+
+                                        Log.d("SCHEDULED ACTION PING", "action contains download");
+                                        if(!url.isEmpty()){
+                                            new DownloadScheduledFromURL().execute(AppConfig.URL_API + url);
+                                        }
+
+                                    }else if(action.contains("time")){
+
+                                        Log.d("SCHEDULED ACTION PING", "action contains time for schedule creation");
+                                        final int hour = data.getInt("hour");
+                                        final int minute = data.getInt("minute");
+
+
+                                        setSchedule(hour, minute);
                                     }
                                 }
 
@@ -463,7 +515,7 @@ public class MainActivity extends Activity {
     }
 
     public void playImage() {
-
+        StorageManager.Set(getApplicationContext(), "display", "image");
         imageView.post(new Runnable() {
             @Override
             public void run() {
@@ -498,8 +550,44 @@ public class MainActivity extends Activity {
         AppConfig.video_open = false;
     }
 
+    public void playScheduled() {
+        StorageManager.Set(getApplicationContext(), "schedule_active", "true");
+        Log.d("SCHEDULED", "PLAYING SCHEDULED");
+        imageView.post(new Runnable() {
+            @Override
+            public void run() {
+                imageView.setVisibility(View.INVISIBLE);
+            }
+        });
+
+        videoView.post(new Runnable() {
+            @Override
+            public void run() {
+                String videoUrl = "file:///" +
+                        Environment.getExternalStorageDirectory().getAbsolutePath() +
+                        "/scheduled.mp4";
+
+                videoView.setVideoPath(videoUrl);
+                videoView.setVisibility(View.VISIBLE);
+                videoView.start();
+            }
+        });
+
+        webView.post(new Runnable() {
+            @Override
+            public void run() {
+                webView.setVisibility(View.INVISIBLE);
+                webView.loadUrl("about:blank");
+            }
+        });
+
+
+        AppConfig.video_open = true;
+    }
+
     public void playVideo() {
 
+        StorageManager.Set(getApplicationContext(), "display", "video");
         imageView.post(new Runnable() {
             @Override
             public void run() {
@@ -733,7 +821,8 @@ public class MainActivity extends Activity {
             Log.d("NEW SCHEDULED VIDEO", checkUrl);
             if (storedVideo.equals(checkUrl)) {
                 Log.d("Download Video", "Video already locally stored");
-                playVideo();
+                API.scheduleRequest(getApplicationContext(), "confirmed_download", "true", "boolean");
+                //playVideo();
             } else {
                 Log.d("Download Video", "Video download required...");
 
@@ -806,7 +895,9 @@ public class MainActivity extends Activity {
 
                     StorageManager.Set(getApplicationContext(), "scheduled_video", checkUrl);
 
-                    RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+                    API.scheduleRequest(getApplicationContext(), "confirmed_download", "true", "boolean");
+
+                    /*RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
                     StringRequest syncRequest = new StringRequest(Request.Method.GET, AppConfig.URL_SCHEDULE + "?device_id=" + device_id,
                             new Response.Listener<String>()
                             {
@@ -855,7 +946,7 @@ public class MainActivity extends Activity {
                             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
                     // Adding request to request queue
-                    queue.add(syncRequest);
+                    queue.add(syncRequest);*/
 
 
                 } catch (Exception e) {
