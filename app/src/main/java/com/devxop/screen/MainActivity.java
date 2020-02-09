@@ -80,8 +80,11 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
+import static java.lang.Integer.parseInt;
+import static java.lang.Long.parseLong;
 
 public class MainActivity extends Activity {
 
@@ -105,6 +108,9 @@ public class MainActivity extends Activity {
     private static final String ACTION_STRING_ACTIVITY = "ToActivity";
     private static final String ACTION_STRING_UPDATE = "forceUpdate";
 
+    private static long startTime = 0;
+    private static long endTime = 0;
+
     //STEP1: Create a broadcast receiver
     private BroadcastReceiver activityReceiver = new BroadcastReceiver() {
 
@@ -112,37 +118,17 @@ public class MainActivity extends Activity {
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction().toString();
 
-            //Toast.makeText(getApplicationContext(), action, Toast.LENGTH_SHORT).show();
-
             Log.d("FORCED UPDATE SCHEDULED", "forcing a scheduled update now...");
 
             playScheduled();
 
             API.scheduleRequest(context, "status", "playing", "string");
-
-           /* if (action.equals("forceUpdate")) {
-                forceUpdate();
-                //Toast.makeText(getApplicationContext(), "Forcing update...!", Toast.LENGTH_SHORT).show();
-            }*/
-
         }
     };
-
-    //private VideoView videoView;
 
     @Override
     public void onResume(){
         super.onResume();
-        // put your code here...
-        ///STEP2: register the receiver
-        /*if (activityReceiver != null) {
-//Create an intent filter to listen to the broadcast sent with the action "ACTION_STRING_ACTIVITY"
-            IntentFilter intentFilter = new IntentFilter(ACTION_STRING_ACTIVITY);
-            IntentFilter intentFilter2 = new IntentFilter(ACTION_STRING_UPDATE);
-//Map the intent filter to the receiver
-            registerReceiver(activityReceiver, intentFilter);
-            registerReceiver(activityReceiver, intentFilter2);
-        }*/
 
         forceUpdate();
 
@@ -153,14 +139,10 @@ public class MainActivity extends Activity {
         super.onPause();
     //Log.d("ACTIVITY MAIN", "unregistering Receiver");
         try {
-
-            //Register or UnRegister your broadcast receiver here
-            //unregisterReceiver(activityReceiver);
         } catch(IllegalArgumentException e) {
 
             e.printStackTrace();
         }
-
     }
 
 
@@ -170,8 +152,6 @@ public class MainActivity extends Activity {
         //Log.d("ACTIVITY MAIN", "unregistering Receiver");
         try {
             unregisterReceiver(activityReceiver);
-            //Register or UnRegister your broadcast receiver here
-            //unregisterReceiver(activityReceiver);
         } catch(IllegalArgumentException e) {
 
             e.printStackTrace();
@@ -180,13 +160,9 @@ public class MainActivity extends Activity {
 
 
     private void setSchedule(int hour, int minute){
+
         Intent intentToFire = new Intent(getApplicationContext(), AlarmReceiver.class);
         intentToFire.setAction(AlarmReceiver.ACTION_ALARM);
-
-        // pass something
-        // Bundle bundle = new Bundle();
-        // bundle.putString("TAG", "FOO");
-        // intentToFire.putExtra("BUNDLE", bundle);
 
         PendingIntent alarmIntent = PendingIntent.getBroadcast(getApplicationContext(),
                 0, intentToFire, 0);
@@ -198,20 +174,41 @@ public class MainActivity extends Activity {
         startTime.set(Calendar.MINUTE, minute);
         startTime.set(Calendar.SECOND, 0);
 
-// get a Calendar at the current time
+        final int ms = 0 - parseInt(StorageManager.Get(getApplicationContext(), "delay_play"));
+
+        //final int delayMs = parseInt(StorageManager.Get(getApplicationContext(), "time_delay"));
+
+        /*final int totalDelayMs = delayMs;
+
+        final int customDelay = parseInt(StorageManager.Get(getApplicationContext(), "custom_delay"));
+
+        if(customDelay < 0  || customDelay > 0){
+            startTime.set(Calendar.MILLISECOND, customDelay);
+        }else{
+            if(totalDelayMs > 0){
+                final int delay = (~(totalDelayMs - 1));
+                startTime.set(Calendar.MILLISECOND, delay);
+            }else if(totalDelayMs < 0){
+                final int delay = ~(totalDelayMs - 1);
+                startTime.set(Calendar.MILLISECOND, delay);
+            }
+        }*/
+
+        startTime.set(Calendar.MILLISECOND, ms);
+
         Calendar now = Calendar.getInstance();
 
         long time = 0;
         if (now.before(startTime)) {
             // it's not 14:00 yet, start today
-            time = startTime.getTimeInMillis();
+            time = startTime.getTimeInMillis() - ms ;
         } else {
             // start 14:00 tomorrow
             startTime.add(Calendar.DATE, 1);
-            time = startTime.getTimeInMillis();
+            time = startTime.getTimeInMillis() - ms;
         }
 
-// set the alarm
+        // set the alarm
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
             alarmManager.set(AlarmManager.RTC, time, alarmIntent);
         } else {
@@ -248,14 +245,48 @@ public class MainActivity extends Activity {
             @Override
             public void onPrepared(MediaPlayer mp) {
                 final String scheduleActive = StorageManager.Get(getApplicationContext(), "schedule_active");
-                if(scheduleActive.equals("true")){
-                    API.scheduleRequest(getApplicationContext(), "status", "finished", "string");
-                    playImage();
+                final String flagTest = StorageManager.Get(getApplicationContext(), "flag_test");
+
+                if(flagTest.equals("true")){
+                    mp.setLooping(false);
+                    endTime = System.nanoTime();
+
+                    final long nanoSecs = endTime - startTime;
+                    System.out.println(nanoSecs + " Ns");
+
+                    long durationInMs = TimeUnit.MILLISECONDS.convert(nanoSecs, TimeUnit.NANOSECONDS);
+
+                    System.out.println(durationInMs + " Ms");
+
+                    StorageManager.Set(getApplicationContext(), "delay_play", ""+durationInMs);
+                    StorageManager.Set(getApplicationContext(), "flag_test", "false");
+
+                    playDisplay();
+                }else if(scheduleActive.equals("true")){
+                    mp.setLooping(false);
                 }else{
                     mp.setLooping(true);
                 }
             }
         });
+
+        videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                final String scheduleActive = StorageManager.Get(getApplicationContext(), "schedule_active");
+
+                Log.d("VIDEO PLAYER", "VIDEO FINISHED PLAYING");
+                if(scheduleActive.equals("true")){
+                    API.scheduleRequest(getApplicationContext(), "status", "finished", "string");
+                    playDisplay();
+                    StorageManager.Set(getApplicationContext(), "schedule_active", "false");
+
+                }
+            }
+
+        });
+
         videoView.setVideoURI(Uri.parse(videoUrl));
 
         /* SET WEBVIEW INIT */
@@ -280,13 +311,7 @@ public class MainActivity extends Activity {
 
         doPing();
         if(AppConfig.requires_restart){
-            final String display = StorageManager.Get(getApplicationContext(), "display");
-
-            if(display.equals("video")){
-                playVideo();
-            }else if(display.equals("image")){
-                playVideo();
-            }
+            playDisplay();
         }else{
             forceUpdate();
         }
@@ -303,12 +328,19 @@ public class MainActivity extends Activity {
         bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);*/
     }
 
+    private void playDisplay(){
+        final String display = StorageManager.Get(getApplicationContext(), "display");
+
+        if(display.equals("video")){
+            playVideo();
+        }else if(display.equals("image")){
+            playImage();
+        }else{
+            playImage();
+        }
+    }
 
     private void doPing() {
-
-        //Log.d("PINGIN", "DOING PING");
-
-        RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
 
         StringRequest syncRequest = new StringRequest(Request.Method.GET, AppConfig.URL_UPDATE + "?device_id=" + device_id,
                 new Response.Listener<String>() {
@@ -321,6 +353,8 @@ public class MainActivity extends Activity {
                             // Check for error node in json
                             if (code == 200) {
                                 // response
+
+                                //API.serverTime(getApplicationContext());
 
                                 if (update == true || AppConfig.requires_restart) {
                                     Log.d("FORCE UPDATE", "FORCING UPDATE -> Connection");
@@ -349,12 +383,8 @@ public class MainActivity extends Activity {
                 }
         );
 
-        syncRequest.setRetryPolicy(new DefaultRetryPolicy(
-                5000,
-                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         // Adding request to request queue
-        queue.add(syncRequest);
+        API.setRequestQueue(getApplicationContext(), syncRequest);
 
         new Handler().postDelayed(new Runnable() {
             @Override
@@ -365,8 +395,6 @@ public class MainActivity extends Activity {
     }
 
     public void forceUpdate() {
-
-        RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
 
         StringRequest syncRequest = new StringRequest(Request.Method.GET, AppConfig.URL_DISPLAY + "?device_id=" + device_id,
                 new Response.Listener<String>() {
@@ -441,6 +469,12 @@ public class MainActivity extends Activity {
 
 
                                         setSchedule(hour, minute);
+                                    }else if(action.contains("delay")){
+
+                                        Log.d("SCHEDULED ACTION PING", "action contains time for schedule creation");
+                                        final int delay = data.getInt("ms");
+
+                                        StorageManager.Set(getApplicationContext(), "custom_delay", "" + delay);
                                     }
                                 }
 
@@ -466,12 +500,8 @@ public class MainActivity extends Activity {
                 }
         );
 
-        syncRequest.setRetryPolicy(new DefaultRetryPolicy(
-                6000,
-                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
-        // Adding request to request queue
-        queue.add(syncRequest);
+
+        API.setRequestQueue(getApplicationContext(), syncRequest);
 
         AppConfig.requires_restart = false;
 
@@ -479,7 +509,14 @@ public class MainActivity extends Activity {
 
     }
 
+
+    public void timeStartVideo(){
+        StorageManager.Set(getApplicationContext(), "flag_test", "true");
+        startTime = System.nanoTime();
+        playScheduled();
+    }
     public void playWebview(final String inject, final boolean isData) {
+        StorageManager.Set(getApplicationContext(), "display", "webview");
         Log.d("WEBVIEW", "PLAYING WEBVIEW");
         imageView.post(new Runnable() {
             @Override
@@ -823,6 +860,7 @@ public class MainActivity extends Activity {
                 Log.d("Download Video", "Video already locally stored");
                 API.scheduleRequest(getApplicationContext(), "confirmed_download", "true", "boolean");
                 //playVideo();
+                timeStartVideo();
             } else {
                 Log.d("Download Video", "Video download required...");
 
@@ -896,6 +934,8 @@ public class MainActivity extends Activity {
                     StorageManager.Set(getApplicationContext(), "scheduled_video", checkUrl);
 
                     API.scheduleRequest(getApplicationContext(), "confirmed_download", "true", "boolean");
+
+                    timeStartVideo();
 
                     /*RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
                     StringRequest syncRequest = new StringRequest(Request.Method.GET, AppConfig.URL_SCHEDULE + "?device_id=" + device_id,
