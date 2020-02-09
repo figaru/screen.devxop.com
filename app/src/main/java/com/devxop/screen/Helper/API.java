@@ -33,6 +33,9 @@ public class API {
             requestQueue = Volley.newRequestQueue(context);
             //Build.logError("Setting a new request queue");
             System.out.println("setting s a new request queue...");
+        } else {
+            requestQueue.cancelAll(context);
+
         }
 
         s.setRetryPolicy(new DefaultRetryPolicy(
@@ -43,7 +46,7 @@ public class API {
         requestQueue.add(s);
     }
 
-    public static void scheduleRequest(Context context, final String action, final String value, final String valueType){
+    public static void scheduleRequest(Context context, final String action, final String value, final String valueType) {
         final String device_id = StorageManager.Get(context, "device_id");
 
         StringRequest strReq = new StringRequest(Request.Method.POST,
@@ -96,7 +99,7 @@ public class API {
     private static long startTime = 0;
     private static long endTime = 0;
 
-    public static void serverTime(final Context context){
+    public static void serverTime(final Context context) {
         final String device_id = StorageManager.Get(context, "device_id");
 
         StringRequest strReq = new StringRequest(Request.Method.GET,
@@ -123,7 +126,7 @@ public class API {
                         System.out.println("-> REAL APP DELAY (MS): " + realAppTime);
                         //Toast.makeText(context,"APP TIME DIFF FROM SERVER: (MS)" + realAppTime,Toast.LENGTH_LONG).show();
 
-                        StorageManager.Set(context, "time_delay", ""+realAppTime);
+                        StorageManager.Set(context, "time_delay", "" + realAppTime);
                         //System.out.println("-> APP DELAY (MS): " + startTime);
                     } else {
 
