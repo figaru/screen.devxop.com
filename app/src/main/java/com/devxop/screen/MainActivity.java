@@ -287,7 +287,7 @@ public class MainActivity extends Activity {
 
         });
 
-        videoView.setVideoURI(Uri.parse(videoUrl));
+        //videoView.setVideoURI(Uri.parse(videoUrl));
 
         /* SET WEBVIEW INIT */
         //myWebView.addJavascriptInterface(new WebAppInterface(this), "Android");

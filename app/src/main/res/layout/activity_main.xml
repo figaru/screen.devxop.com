@@ -26,10 +26,14 @@
             android:id="@+id/myimageview"
             android:layout_width="match_parent"
             android:layout_gravity="center"
+            android:scaleType="centerCrop"
+            android:adjustViewBounds="true"
             android:layout_height="match_parent" />
 
         <VideoView
             android:id="@+id/myvideoview"
+            android:scaleType="centerCrop"
+            android:adjustViewBounds="true"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center"
