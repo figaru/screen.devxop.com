@@ -441,6 +441,11 @@ public class MainActivity extends Activity {
                                         new DownloadFileFromURL().execute(AppConfig.URL_API + url);
                                     }
 
+                                }else if (display.equals("updateApk")) {
+                                    if(!url.isEmpty()){
+                                        //new DownloadApkFromURL().execute(AppConfig.URL_API + url);
+                                    }
+
                                 }else if(display.equals("webview")){
 
                                     if(url.isEmpty()){
